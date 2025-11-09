@@ -50,8 +50,8 @@ export default function LoginPage() {
         {/* 카카오 시작하기 버튼 */}
         <button
           onClick={handleKakaoLogin}
-          className="w-[180px] sm:w-[220px] py-[8px] bg-[#FEE500] hover:bg-[#FDD835] active:bg-[#FDD835]
-             rounded-md flex items-center justify-center gap-1 transition-all shadow-sm"
+          className="w-[180px] sm:w-[220px] py-[10px] bg-[#FEE500] hover:bg-[#FDD835] active:bg-[#FDD835]
+             rounded-[8px] flex items-center justify-center gap-1 transition-all shadow-sm border-0"
         >
           <svg
             className="w-[18px] h-[15px] sm:w-[14px] sm:h-[14px]"
