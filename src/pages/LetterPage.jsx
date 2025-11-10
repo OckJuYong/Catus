@@ -147,117 +147,130 @@ export default function LetterPage() {
             </div>
 
             {/* 네비게이션 영역 */}
-{totalMessages > 1 && (
-  <div
-    className="mb-[12px] px-[16px] flex items-center justify-between"
-    style={{
-      zIndex: 50,
-      position: "relative",
-    }}
-  >
-    {/* 좌측 화살표 */}
-    <button
-      onClick={handlePrevious}
-      disabled={currentIndex === 0}
-      className="w-[32px] h-[32px] rounded-full bg-[#EAEAEA] text-gray-800 flex items-center justify-center
-                 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#DADADA] transition-all"
-      style={{
-        fontSize: "20px",
-        lineHeight: "1",
-        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1)",
-        border: "none"
-      }}
-      onMouseEnter={(e) => e.currentTarget.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.2), 0 2px 4px rgba(0, 0, 0, 0.15)"}
-      onMouseLeave={(e) => e.currentTarget.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1)"}
-    >
-      ‹
-    </button>
+            {totalMessages > 1 && (
+              <div
+                className="mb-[12px] px-[16px] flex items-center justify-between"
+                style={{
+                  zIndex: 50,
+                  position: "relative",
+                }}
+              >
+                {/* 좌측 화살표 */}
+                <button
+                  onClick={handlePrevious}
+                  disabled={currentIndex === 0}
+                  className="w-[32px] h-[32px] rounded-full bg-[#EAEAEA] text-gray-800 flex items-center justify-center
+                            disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#DADADA] transition-all"
+                  style={{
+                    fontSize: "20px",
+                    lineHeight: "1",
+                    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1)",
+                    border: "none"
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.2), 0 2px 4px rgba(0, 0, 0, 0.15)"}
+                  onMouseLeave={(e) => e.currentTarget.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1)"}
+                >
+                  ‹
+                </button>
 
-    {/* 페이지 인디케이터 */}
-    {totalMessages <= 7 ? (
-      // 7개 이하: 모든 원 표시 (고정)
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '6px',
-          minWidth: '80px',
-          height: '32px'
-        }}
-      >
-        {receivedMessages.map((_, index) => (
-          <div
-            key={index}
-            style={{
-              width: index === currentIndex ? '8px' : '6px',
-              height: index === currentIndex ? '8px' : '6px',
-              borderRadius: '50%',
-              backgroundColor: index === currentIndex ? '#000000' : '#9CA3AF',
-              flexShrink: 0,
-              transition: 'all 0.3s'
-            }}
-          />
-        ))}
-      </div>
-    ) : (
-      // 8개 이상: 슬라이딩 인디케이터 (중앙 기준 7개 정도만 보이게)
-      <div
-        style={{
-          position: 'relative',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: '90px',
-          height: '32px',
-          overflow: 'hidden'
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            transition: 'transform 0.3s ease-in-out',
-            transform: `translateX(-${Math.max(0, currentIndex - 3) * 12}px)`
-          }}
-        >
-          {receivedMessages.map((_, index) => (
-            <div
-              key={index}
-              style={{
-                width: index === currentIndex ? '8px' : '6px',
-                height: index === currentIndex ? '8px' : '6px',
-                borderRadius: '50%',
-                backgroundColor: index === currentIndex ? '#000000' : '#9CA3AF',
-                flexShrink: 0,
-                transition: 'all 0.3s'
-              }}
-            />
-          ))}
-        </div>
-      </div>
-    )}
+                {/* 페이지 인디케이터 */}
+                {totalMessages <= 7 ? (
+                  // 7개 이하: 모든 원 표시 (고정)
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      minWidth: '80px',
+                      height: '32px'
+                    }}
+                  >
+                    {receivedMessages.map((_, index) => (
+                      <div
+                        key={index}
+                        style={{
+                          width: index === currentIndex ? '8px' : '6px',
+                          height: index === currentIndex ? '8px' : '6px',
+                          borderRadius: '50%',
+                          backgroundColor: index === currentIndex ? '#000000' : '#9CA3AF',
+                          flexShrink: 0,
+                          transition: 'all 0.3s'
+                        }}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  // 8개 이상: 슬라이딩 인디케이터
+                  <div
+                    style={{
+                      position: 'relative',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'flex-start',
+                      width: '80px',
+                      height: '32px',
+                      overflow: 'hidden',
+                      paddingLeft: '6px'
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        transition: 'transform 0.3s ease-in-out',
+                        transform: (() => {
+                          const total = receivedMessages.length;
+                          // 처음 3개는 왼쪽 정렬 (translateX = 0)
+                          if (currentIndex <= 2) return 'translateX(0px)';
+                          // 마지막 3개는 오른쪽 정렬
+                          if (currentIndex >= total - 3) {
+                            // 전체 너비에서 컨테이너 너비를 뺀 만큼 이동
+                            const offset = (total - 6) * 12;
+                            return `translateX(-${offset}px)`;
+                          }
+                          // 중간은 현재 인덱스가 약간 왼쪽에 오도록 (3번째 위치)
+                          return `translateX(-${(currentIndex - 2) * 12}px)`;
+                        })()
+                      }}
+                    >
+                      {receivedMessages.map((_, index) => (
+                        <div
+                          key={index}
+                          style={{
+                            width: index === currentIndex ? '8px' : '6px',
+                            height: index === currentIndex ? '8px' : '6px',
+                            borderRadius: '50%',
+                            backgroundColor: index === currentIndex ? '#000000' : '#9CA3AF',
+                            flexShrink: 0,
+                            transition: 'all 0.3s'
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-    {/* 우측 화살표 */}
-    <button
-      onClick={handleNext}
-      disabled={currentIndex === totalMessages - 1}
-      className="w-[32px] h-[32px] rounded-full bg-[#EAEAEA] text-gray-800 flex items-center justify-center
-                 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#DADADA] transition-all"
-      style={{
-        fontSize: "20px",
-        lineHeight: "1",
-        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1)",
-        border: "none"
-      }}
-      onMouseEnter={(e) => e.currentTarget.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.2), 0 2px 4px rgba(0, 0, 0, 0.15)"}
-      onMouseLeave={(e) => e.currentTarget.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1)"}
-    >
-      ›
-    </button>
-  </div>
-)}
+                {/* 우측 화살표 */}
+                <button
+                  onClick={handleNext}
+                  disabled={currentIndex === totalMessages - 1}
+                  className="w-[32px] h-[32px] rounded-full bg-[#EAEAEA] text-gray-800 flex items-center justify-center
+                            disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#DADADA] transition-all"
+                  style={{
+                    fontSize: "20px",
+                    lineHeight: "1",
+                    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1)",
+                    border: "none"
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.2), 0 2px 4px rgba(0, 0, 0, 0.15)"}
+                  onMouseLeave={(e) => e.currentTarget.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1)"}
+                >
+                  ›
+                </button>
+              </div>
+            )}
 
 
 
