@@ -85,23 +85,23 @@ export default function LetterPage() {
         >
           {/* 편지 봉투 뚜껑 (직사각형) */}
           <motion.div
-  style={{
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: '80px',
-    backgroundColor: '#C9A961',
-    borderRadius: '24px 24px 0 0',
-    transformOrigin: 'top center',
-    transformStyle: 'preserve-3d',
-    zIndex: 10,
-    pointerEvents: 'none', // ✅ 클릭 막지 않게
-  }}
-  initial={{ rotateX: 0, opacity: 1 }}
-  animate={{ rotateX: -120, opacity: 0 }}
-  transition={{ delay: 0.3, duration: 0.7, ease: "easeInOut" }}
-/>
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: '80px',
+              backgroundColor: '#C9A961',
+              borderRadius: '24px 24px 0 0',
+              transformOrigin: 'top center',
+              transformStyle: 'preserve-3d',
+              zIndex: 10,
+              pointerEvents: 'none',
+            }}
+            initial={{ rotateX: 0, opacity: 1 }}
+            animate={{ rotateX: -120, opacity: 0 }}
+            transition={{ delay: 0.3, duration: 0.7, ease: "easeInOut" }}
+          />
 
           {/* 편지 내용 */}
           <motion.div

@@ -14,7 +14,7 @@ export default function OnboardingStart() {
 
       {/* 말풍선 + 고양이 */}
       <div className="relative flex flex-col items-center mb-6">
-        {/* 💬 말풍선 */}
+        {/* 말풍선 */}
         <motion.div
           className="bubble"
           initial={{ scale: 0, opacity: 0 }}
@@ -32,7 +32,7 @@ export default function OnboardingStart() {
           <p className="text-white text-lg font-bold">=^._.^= ∫</p>
         </motion.div>
 
-        {/* 🐈 고양이 이미지 */}
+        {/* 고양이 이미지 */}
         <motion.img
           src={catImage}
           alt="Black Cat"
@@ -80,39 +80,38 @@ export default function OnboardingStart() {
 
       {/* CSS */}
       <style>{`
-      @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
       button {
-  -webkit-appearance: none;
-  appearance: none;
-}
+        -webkit-appearance: none;
+        appearance: none;
+      }
 
-button.bg-black {
-  background-color: #000000 !important;
-  color: #ffffff !important;
-}
-        .bubble {
-  position: relative;
-  width: 130px;
-  height: 60px;
-  background: #000000;
-  border-radius: 80px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #ffffff;
-}
+      button.bg-black {
+        background-color: #000000 !important;
+        color: #ffffff !important;
+      }
+      .bubble {
+        position: relative;
+        width: 130px;
+        height: 60px;
+        background: #000000;
+        border-radius: 80px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #ffffff;
+      }
 
-/* 꼬리 (완전 붙은 듯 보이지만 자연스러운 연결) */
-.bubble::after {
-  content: '';
-  position: absolute;
-  bottom: -6px; /* ✅ 살짝만 내려서 자연스럽게 */
-  left: 50%;
-  transform: translateX(-50%) rotate(0deg);
-  border-style: solid;
-  border-width: 8px 8px 0; /* ✅ 꼬리 좀 더 얇게 */
-  border-color: #000000 transparent transparent transparent;
-}
+      /* 꼬리  */
+      .bubble::after {
+        content: '';
+        position: absolute;
+        bottom: -6px; 
+        left: 50%;
+        transform: translateX(-50%) rotate(0deg);
+        border-style: solid;
+        border-width: 8px 8px 0; 
+        border-color: #000000 transparent transparent transparent;
+      }
 
 
         html, body, #root {

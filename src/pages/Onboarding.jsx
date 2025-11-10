@@ -159,7 +159,7 @@ export default function Onboarding() {
           );
         })}
 
-        {/* ✨ 마지막 발자국 - 빛나며 사라지는 효과 */}
+        {/* 마지막 발자국 - 빛나며 사라지는 효과 */}
         <motion.img
           src={footprintIcon}
           alt="footprint-glow"
@@ -190,7 +190,7 @@ export default function Onboarding() {
         />
       </div>
 
-      {/* ✨ 중앙 텍스트 */}
+      {/* 중앙 텍스트 */}
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -221,9 +221,9 @@ export default function Onboarding() {
 
   return (
     <div className="relative w-full h-screen bg-[#fef9f1] flex flex-col overflow-hidden">
-      {/* 🟢 상단 진행도 */}
+      {/* 상단 진행도 */}
       <div className="w-full flex flex-col items-center pt-[10px] pb-4 bg-[#fef9f1] sticky top-0 z-30">
-        {/* ✅ 진행도 바 (80% 중앙) */}
+        {/* 진행도 바 (80% 중앙) */}
         <div className="relative w-[80%] h-[8px] bg-gray-200 rounded-full mb-2">
           <motion.div
             className="absolute top-0 left-0 h-full bg-[#59B464] rounded-full"
@@ -239,13 +239,13 @@ export default function Onboarding() {
           />
         </div>
 
-        {/* ✅ 진행 단계 텍스트 */}
+        {/* 진행 단계 텍스트 */}
         <p className="text-sm sm:text-base text-gray-700 font-medium text-center">
           Step {step + 1}/4 - 달이에게 당신을 알려주세요
         </p>
       </div>
 
-      {/* 🐈 고양이 */}
+      {/* 고양이 */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         <motion.img
           src={catImage}
@@ -266,7 +266,7 @@ export default function Onboarding() {
         />
       </div>
 
-      {/* 💬 대화 영역 */}
+      {/* 대화 영역 */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden px-6 py-8 z-10 space-y-4 mt-4">
         <AnimatePresence>
           {messages.map((msg, idx) => (
@@ -306,7 +306,7 @@ export default function Onboarding() {
           ))}
         </AnimatePresence>
 
-        {/* ✅ 선택지 버튼 */}
+        {/* 선택지 버튼 */}
         {!steps[step].input && !isWaiting ? (
           <motion.div
             key={`options-${step}`}
@@ -335,7 +335,7 @@ export default function Onboarding() {
           </motion.div>
         ) : null}
 
-        {/* ✅ Step 4 입력창 */}
+        {/* Step 4 입력창 */}
         {steps[step].input && showInput && (
           <motion.div
             key="input"
@@ -379,12 +379,8 @@ export default function Onboarding() {
         </button>
       </div>
 
-      {/* 💬 스타일 */}
+      {/* 스타일 */}
       <style>{`
-        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
-        * {
-          font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-        }
         html, body, #root {
           margin: 0;
           padding: 0;

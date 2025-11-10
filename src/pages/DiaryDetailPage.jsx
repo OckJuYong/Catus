@@ -137,7 +137,7 @@ export default function DiaryDetailPage() {
         )}
       </AnimatePresence>
 
-      {/* ✅ 헤더 */}
+      {/* 헤더 */}
       <div className="flex items-center justify-between px-[12px] py-[12px] bg-white relative">
         <button
           onClick={() => navigate(ROUTES.CALENDAR)}
@@ -158,7 +158,7 @@ export default function DiaryDetailPage() {
         </button>
       </div>
 
-      {/* ✅ 본문 */}
+      {/*  본문 */}
       <div className="flex-1 overflow-y-auto px-[20px] ">
         {/* 이미지 카드 */}
         {diary.image && (

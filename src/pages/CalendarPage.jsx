@@ -1,4 +1,4 @@
-// 📄 CalendarPage.jsx
+//  CalendarPage.jsx
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -13,7 +13,7 @@ export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [diaryData, setDiaryData] = useLocalStorage('diary_data', {});
 
-  // ✅ Mock diary data from diaryData.js (localStorage가 비어있을 때만)
+  //  Mock diary data from diaryData.js (localStorage가 비어있을 때만)
   useEffect(() => {
     // localStorage에 데이터가 없으면 mock 데이터로 초기화
     if (Object.keys(diaryData).length === 0) {
@@ -79,52 +79,52 @@ export default function CalendarPage() {
 
   return (
     <>
-      {/* ✅ 배경 페이지 (홈) */}
+      {/*  배경 페이지 (홈) */}
       <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
         <HomePage />
       </div>
 
-      {/* ✅ 캘린더 모달 */}
-<div
-  style={{
-    position: 'fixed',
-    inset: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    zIndex: 1000,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center'
-  }}
->
-  <motion.div
-    className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 
-               bg-[#F5F5F0] rounded-[24px] w-[90%] max-w-[360px] 
-               flex flex-col shadow-2xl overflow-hidden"
-    initial={{ opacity: 0, scale: 0.95 }}
-    animate={{ opacity: 1, scale: 1 }}
-    transition={{ duration: 0.3 }}
-    onClick={(e) => e.stopPropagation()}
-  >
+      {/*  캘린더 모달 */}
+      <div
+        style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.7)',
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+      >
+        <motion.div
+          className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 
+                    bg-[#F5F5F0] rounded-[24px] w-[90%] max-w-[360px] 
+                    flex flex-col shadow-2xl overflow-hidden"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.3 }}
+          onClick={(e) => e.stopPropagation()}
+        >
 
 
-          {/* ✅ 헤더 (높이 늘림 + 흰색 글씨 유지) */}
+          {/*  헤더  */}
           <div className="flex items-center justify-between px-4 py-[13px] bg-[#5F6F52] text-white rounded-t-[24px]">
             <button
               onClick={() => navigate(ROUTES.HOME)}
-              className="text-2xl w-10 h-10 flex items-center justify-center hover:opacity-70 bg-transparent border-0 text-white"
+              className="text-2xl w-10 h-10 flex items-center justify-center hover:opacity-70 bg-transparent border-0 text-[white]"
             >
               ‹
             </button>
-            <div className="text-[15px] font-semibold text-white" style={{ color: "#FFFFFF" }}>캘린더</div>
+            <div className="text-[15px] font-semibold text-[white]" >캘린더</div>
             <button
               onClick={() => navigate(ROUTES.HOME)}
-              className="text-2xl w-10 h-10 flex items-center justify-center hover:opacity-70 bg-transparent border-0 text-white"
+              className="text-2xl w-10 h-10 flex items-center justify-center hover:opacity-70 bg-transparent border-0 text-[white]"
             >
               ×
             </button>
           </div>
 
-          {/* ✅ 흰색 캘린더 본문 */}
+          {/*  흰색 캘린더 본문 */}
           <div className="bg-[#FFFFFF] rounded-b-[24px] mt-4 p-4 pb-[6px] flex flex-col shadow-md">
             {/* 월 네비게이션 */}
             <div className="flex items-center justify-between py-[8px] mb-1">
@@ -227,12 +227,11 @@ export default function CalendarPage() {
             </div>
           </div>
 
-          {/* ✅ 오늘의 그림일기 쓰기 버튼 */}
+          {/* 오늘의 그림일기 쓰기 버튼 */}
           <div className="bg-[#F5F5F0] w-full flex justify-center pb-[6px] pt-[6px] rounded-b-[24px]">
             <button
-              className="w-[90%] py-[12px] bg-[#5F6F52] text-white rounded-[14px]
+              className="w-[90%] py-[12px] bg-[#5F6F52] text-[white] rounded-[14px]
                          font-semibold text-[14px] shadow-md hover:opacity-90 transition-all border-0 outline-none"
-                         style={{ color: "#FFFFFF" }}
               onClick={() => navigate(ROUTES.CHAT)}
             >
               오늘의 그림일기 쓰기
@@ -240,14 +239,6 @@ export default function CalendarPage() {
           </div>
         </motion.div>
       </div>
-
-      {/* ✅ 폰트 */}
-      <style>{`
-        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
-        * {
-          font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-        }
-      `}</style>
     </>
   );
 }

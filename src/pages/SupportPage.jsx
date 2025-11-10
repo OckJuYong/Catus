@@ -185,7 +185,7 @@ export default function SupportPage() {
         )}
       </div>
 
-      {/* 종이비행기 애니메이션 - 밝은 배경과 함께 렌더링 */}
+      {/* 종이비행기 애니메이션 */}
       {showPlaneAnimation && (
         <div style={{
           position: 'fixed',

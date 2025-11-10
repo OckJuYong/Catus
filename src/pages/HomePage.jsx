@@ -167,7 +167,7 @@ export default function HomePage({ hideButtons = false }) {
         <Tutorial onComplete={handleTutorialComplete} />
       )}
 
-      {/* 🌵 응원메시지 처음 알림 튜토리얼 */}
+      {/* 응원메시지 처음 알림 튜토리얼 */}
       {showSupportTutorial && (
         <motion.div
           initial={{ opacity: 0 }}

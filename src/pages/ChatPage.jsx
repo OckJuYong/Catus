@@ -304,8 +304,7 @@ export default function ChatPage() {
           </motion.div>
         )}
 
-            <div ref={messagesEndRef} />
-          </div>
+        <div ref={messagesEndRef} /></div>
 
           {/* 입력 영역 */}
           <div className="bg-white flex items-center" style={{ paddingLeft: '16px', paddingRight: '16px', paddingTop: '12px', paddingBottom: '12px', gap: '8px' }}>

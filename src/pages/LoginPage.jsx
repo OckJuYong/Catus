@@ -76,12 +76,8 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Pretendard 폰트 */}
       <style>{`
-        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
-
         * {
-          font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
           -webkit-tap-highlight-color: transparent;
         }
 
