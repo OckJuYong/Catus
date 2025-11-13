@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: catus-backend
+    runtime: java
+    buildCommand: ./gradlew clean build -x test
+    startCommand: java -Dserver.port=$PORT -jar build/libs/catus-backend-1.0.0.jar
+    envVars:
+      - key: SPRING_DATASOURCE_URL
+        value: jdbc:postgresql://db.vplhnjknctzpbhikyttr.supabase.co:5432/postgres
+      - key: SPRING_DATASOURCE_USERNAME
+        value: postgres
+      - key: SPRING_DATASOURCE_PASSWORD
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: JAVA_OPTS
+        value: "-Xmx512m -Xms256m"
