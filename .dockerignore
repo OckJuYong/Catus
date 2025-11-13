@@ -1,0 +1,12 @@
+.git
+.gradle
+build
+!build/libs
+*.log
+.env*
+!.env.example
+.catus_session.json
+*.md
+!README.md
+.gitignore
+docker-compose.yml
