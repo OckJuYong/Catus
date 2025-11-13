@@ -2,7 +2,10 @@
 nixPkgs = ["openjdk17"]
 
 [phases.build]
-cmds = ["./gradlew clean build -x test"]
+cmds = [
+  "chmod +x gradlew",
+  "./gradlew clean build -x test"
+]
 
 [start]
 cmd = "java -Dserver.port=$PORT -jar build/libs/catus-backend-1.0.0.jar"
