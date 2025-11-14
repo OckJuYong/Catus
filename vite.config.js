@@ -11,7 +11,7 @@ export default defineConfig({
   define: {
     'import.meta.env.VITE_KAKAO_REST_API_KEY': JSON.stringify('3208a92b2ae4ffc746f562b3b4162231'),
     'import.meta.env.VITE_KAKAO_REDIRECT_URI': JSON.stringify('https://catus-frontend-umber.vercel.app/auth/kakao/callback'),
-    'import.meta.env.VITE_API_BASE_URL': JSON.stringify('https://catus-backend-node-kxh4o4fky-juyongs-projects-ca9f3fd5.vercel.app/api/v1'),
+    'import.meta.env.VITE_API_BASE_URL': JSON.stringify('https://catus-backend-node-8dunpa2fs-juyongs-projects-ca9f3fd5.vercel.app/api/v1'),
     'import.meta.env.VITE_ENABLE_DEBUG': JSON.stringify('false'),
   }
 })
