@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ROUTES } from "../constants/routes";
 import { useTutorial } from "../contexts/TutorialContext";
+import { useDarkMode } from "../contexts/DarkModeContext";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import Tutorial from "./Tutorial";
 
@@ -14,11 +15,14 @@ import cactus3 from "../assets/images/catus3.png";
 import cactus4 from "../assets/images/catus4.png";
 import book from "../assets/images/book.png";
 import bg from "../assets/images/home-background.png";
+import bgDark from "../assets/images/background-dark.png";
+import settingIcon from "../assets/images/setting.png";
 
 export default function HomePage({ hideButtons = false }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { isTutorialCompleted, startTutorial } = useTutorial();
+  const { isDarkMode } = useDarkMode();
 
   // ====== LocalStorage ======
   const [receivedMessages, setReceivedMessages] = useLocalStorage("received_messages", []);
@@ -126,37 +130,12 @@ export default function HomePage({ hideButtons = false }) {
 
   const handleTutorialComplete = () => setShowTutorial(false);
 
-  // ✅ 테스트용: 응원 메시지 수신 시뮬레이션
-  const simulateMessage = () => {
-    const testMessages = [
-      '당신은 충분히 좋다고 말이야 💛',
-      '오늘도 고생했어요! 힘내세요 🌟',
-      '당신의 하루를 응원합니다 🌈',
-      '힘든 시간을 보내고 있는 것 같아서 응원의 메시지를 보내요 ✨',
-      '괜찮아요, 천천히 가도 괜찮아요 🌱'
-    ];
-    const randomMessage = testMessages[Math.floor(Math.random() * testMessages.length)];
-
-    const fake = {
-      id: Date.now(),
-      text: randomMessage,
-      date: new Date().toLocaleString(),
-    };
-    setReceivedMessages([...receivedMessages, fake]);
-    setShowMessageNotification(true);
-
-    // 3초 후 알림 자동 닫기
-    setTimeout(() => {
-      setShowMessageNotification(false);
-    }, 3000);
-  };
-
   // ====== 렌더 ======
   return (
-    <div className="relative w-full h-screen overflow-hidden flex flex-col items-center justify-end bg-[#fef9f1]">
+    <div className="relative w-full h-screen overflow-hidden flex flex-col items-center justify-end" style={{ backgroundColor: '#fef9f1' }}>
       {/* 배경 */}
       <img
-        src={bg}
+        src={isDarkMode ? bgDark : bg}
         alt="background"
         className="absolute inset-0 w-full h-full object-fill select-none pointer-events-none"
         draggable="false"
@@ -326,6 +305,7 @@ export default function HomePage({ hideButtons = false }) {
               src={img}
               alt={`cactus-${idx + 1}`}
               className="object-contain drop-shadow-lg w-[8vw] min-w-[40px] max-w-[70px]"
+              style={{ filter: isDarkMode ? 'brightness(0.7)' : 'none' }}
             />
           </button>
         ))}
@@ -341,6 +321,7 @@ export default function HomePage({ hideButtons = false }) {
           src={book}
           alt="diary"
           className="object-contain drop-shadow-xl w-[18vw] min-w-[80px] max-w-[150px]"
+          style={{ filter: isDarkMode ? 'brightness(0.7)' : 'none' }}
         />
       </button>
 
@@ -359,6 +340,7 @@ export default function HomePage({ hideButtons = false }) {
           src={hasNewMessage ? catMessageImage : catImage}
           alt="cat"
           className="cat-image object-contain drop-shadow-2xl w-[20vw] min-w-[90px] max-w-[180px]"
+          style={{ filter: isDarkMode ? (hasNewMessage ? 'brightness(0.7)' : 'brightness(0.9)') : 'none' }}
           key={catAnimationKey}
           animate={hasNewMessage ? {
             y: [0, -20, -10, -15, 0],
@@ -375,22 +357,14 @@ export default function HomePage({ hideButtons = false }) {
       {!hideButtons && (
         <button
           onClick={() => navigate(ROUTES.SETTINGS)}
-          className="settings-icon absolute top-[4%] right-[4%] flex items-center justify-center z-30 text-[#3E4A59] hover:text-gray-900 hover:scale-110 transition-transform bg-transparent border-0"
+          className="settings-icon absolute top-[4%] right-[4%] flex items-center justify-center z-30 hover:scale-110 transition-transform bg-transparent border-0"
           aria-label="설정"
         >
-          <span className="material-symbols-outlined text-[32px] sm:text-[36px]">
-            settings_heart
-          </span>
-        </button>
-      )}
-
-      {/* 🧪 테스트용: 응원 메시지 받기 버튼 */}
-      {!hideButtons && (
-        <button
-          onClick={simulateMessage}
-          className="absolute top-[4%] left-[4%] bg-[#59B464] text-white px-3 py-1.5 rounded-md text-[13px] hover:bg-[#4EA158] transition border-0"
-        >
-          테스트 메시지 받기
+          <img
+            src={settingIcon}
+            alt="settings"
+            className="w-[24px] h-[24px] sm:w-[28px] sm:h-[28px]"
+          />
         </button>
       )}
 

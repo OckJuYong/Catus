@@ -18,10 +18,26 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* 다크모드 CSS Variables */
+  --color-main-bg: #fef9f1;
+  --color-bg-card: #ffffff;
+  --color-text-primary: #333333;
+  --color-text-secondary: #666666;
+  --color-border: #e0e0e0;
 }
 
 * {
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+}
+
+/* 다크모드 스타일 */
+.dark {
+  --color-main-bg: #1a1a1a;
+  --color-bg-card: #2a2a2a;
+  --color-text-primary: #e0e0e0;
+  --color-text-secondary: #999999;
+  --color-border: #404040;
 }
 
 a {

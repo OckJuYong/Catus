@@ -1,17 +1,21 @@
 //  CalendarPage.jsx
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { ROUTES } from "../constants/routes";
 import { EMOTION_COLORS } from "../constants/emotionColors";
-import { mockDiaries } from "../mocks/diaryData";
-import { useLocalStorage } from "../hooks/useLocalStorage";
+import { useDiaryList } from "../hooks/useDiary";
 import HomePage from "./HomePage";
 
 export default function CalendarPage() {
   const navigate = useNavigate();
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [diaryData, setDiaryData] = useLocalStorage('diary_data', {});
+
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth() + 1; // useDiaryList expects 1-12
+
+  // Fetch real diary data from API
+  const { diaries: diaryData, loading } = useDiaryList(year, month);
 
   // SVG 이미지 생성 함수
   const createEmotionImage = (color, emoji) => {
@@ -24,48 +28,23 @@ export default function CalendarPage() {
     return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
   };
 
-  //  Mock diary data from diaryData.js (localStorage가 비어있을 때만)
-  useEffect(() => {
-    // localStorage에 데이터가 없으면 mock 데이터로 초기화
-    if (Object.keys(diaryData).length === 0) {
-      const processedData = Object.keys(mockDiaries).reduce((acc, dateKey) => {
-        const diary = mockDiaries[dateKey];
-        const emotionColorMap = {
-          '행복': '#6BCB77',
-          '슬픔': '#4D96FF',
-          '불안': '#FFD93D',
-          '화남': '#FF6B6B',
-          '보통': '#9E9E9E'
-        };
-        const emotionEmojiMap = {
-          '행복': '😊',
-          '슬픔': '😢',
-          '불안': '😰',
-          '화남': '😠',
-          '보통': '😐'
-        };
+  // Emotion emoji mappings
+  const emotionEmojiMap = {
+    '행복': '😊',
+    '슬픔': '😢',
+    '불안': '😰',
+    '화남': '😠',
+    '보통': '😐'
+  };
 
-        acc[dateKey] = {
-          ...diary,
-          image: createEmotionImage(emotionColorMap[diary.emotion], emotionEmojiMap[diary.emotion])
-        };
-        return acc;
-      }, {});
-
-      setDiaryData(processedData);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const year = currentDate.getFullYear();
-  const month = currentDate.getMonth();
-  const firstDay = new Date(year, month, 1);
-  const lastDay = new Date(year, month + 1, 0);
+  const displayMonth = currentDate.getMonth();
+  const firstDay = new Date(year, displayMonth, 1);
+  const lastDay = new Date(year, displayMonth + 1, 0);
   const firstDayOfWeek = firstDay.getDay();
   const daysInMonth = lastDay.getDate();
 
   const calendarDays = [];
-  const prevMonthLastDay = new Date(year, month, 0).getDate();
+  const prevMonthLastDay = new Date(year, displayMonth, 0).getDate();
   for (let i = firstDayOfWeek - 1; i >= 0; i--) {
     calendarDays.push({ day: prevMonthLastDay - i, isCurrentMonth: false });
   }
@@ -79,12 +58,12 @@ export default function CalendarPage() {
 
   const isToday = (d) => {
     const t = new Date();
-    return t.getFullYear() === year && t.getMonth() === month && t.getDate() === d;
+    return t.getFullYear() === year && t.getMonth() === displayMonth && t.getDate() === d;
   };
 
   const handleDayClick = (d) => {
     if (!d) return;
-    const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+    const dateStr = `${year}-${String(displayMonth + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
     if (diaryData[dateStr]) navigate(`${ROUTES.DIARY}/${dateStr}`);
   };
 
@@ -140,16 +119,16 @@ export default function CalendarPage() {
             {/* 월 네비게이션 */}
             <div className="flex items-center justify-between py-[8px] mb-1">
               <button
-                onClick={() => setCurrentDate(new Date(year, month - 1, 1))}
+                onClick={() => setCurrentDate(new Date(year, displayMonth - 1, 1))}
                 className="text-lg p-2 hover:opacity-60 text-gray-600 bg-transparent border-0"
               >
                 ‹
               </button>
               <div className="font-semibold text-[14px] text-gray-700">
-                {year}년 {month + 1}월
+                {year}년 {displayMonth + 1}월
               </div>
               <button
-                onClick={() => setCurrentDate(new Date(year, month + 1, 1))}
+                onClick={() => setCurrentDate(new Date(year, displayMonth + 1, 1))}
                 className="text-lg p-2 hover:opacity-60 text-gray-600 bg-transparent border-0"
               >
                 ›
@@ -169,48 +148,59 @@ export default function CalendarPage() {
 
             {/* 날짜 */}
             <div className="grid grid-cols-7 gap-[2px] mb-3">
-              {calendarDays.map((d, i) => {
-                const dateStr = d.isCurrentMonth
-                  ? `${year}-${String(month + 1).padStart(2, "0")}-${String(d.day).padStart(2, "0")}`
-                  : null;
-                const diary = dateStr ? diaryData[dateStr] : null;
-                const today = d.isCurrentMonth && isToday(d.day);
+              {loading ? (
+                <div className="col-span-7 text-center py-4 text-gray-500 text-sm">
+                  일기 불러오는 중...
+                </div>
+              ) : (
+                calendarDays.map((d, i) => {
+                  const dateStr = d.isCurrentMonth
+                    ? `${year}-${String(displayMonth + 1).padStart(2, "0")}-${String(d.day).padStart(2, "0")}`
+                    : null;
+                  const diary = dateStr ? diaryData[dateStr] : null;
+                  const today = d.isCurrentMonth && isToday(d.day);
 
-                return (
-                  <motion.div
-                    key={`${i}-${d.day}`}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: i * 0.01 }}
-                    className={`aspect-square flex flex-col items-center justify-start rounded-md transition-all
-                      ${!d.isCurrentMonth ? "opacity-30 pointer-events-none" : ""}`}
-                  >
-                    {/* 날짜 */}
-                    <div
-                      className={`text-[11px] flex items-center justify-center
-                        w-[22px] h-[22px] rounded-full font-semibold transition-all mb-[3px]
-                        ${
-                          today
-                            ? "bg-[#5F6F52] text-white shadow-sm scale-105"
-                            : "text-gray-800"
-                        }`}
+                  // Create emotion image if diary exists
+                  const emotionImage = diary ?
+                    createEmotionImage(EMOTION_COLORS[diary.emotion], emotionEmojiMap[diary.emotion]) :
+                    null;
+
+                  return (
+                    <motion.div
+                      key={`${i}-${d.day}`}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: i * 0.01 }}
+                      className={`aspect-square flex flex-col items-center justify-start rounded-md transition-all
+                        ${!d.isCurrentMonth ? "opacity-30 pointer-events-none" : ""}`}
                     >
-                      {d.day}
-                    </div>
-
-                    {/* 이미지 */}
-                    {diary && diary.image && (
+                      {/* 날짜 */}
                       <div
-                        className="w-[26px] h-[26px] rounded-[6px] mt-[2px] flex items-center justify-center border-[2px] overflow-hidden cursor-pointer hover:scale-110 transition-transform"
-                        style={{ borderColor: EMOTION_COLORS[diary.emotion] }}
-                        onClick={() => handleDayClick(d.day)}
+                        className={`text-[11px] flex items-center justify-center
+                          w-[22px] h-[22px] rounded-full font-semibold transition-all mb-[3px]
+                          ${
+                            today
+                              ? "bg-[#5F6F52] text-white shadow-sm scale-105"
+                              : "text-gray-800"
+                          }`}
                       >
-                        <img src={diary.image} alt="diary" className="w-full h-full object-cover" />
+                        {d.day}
                       </div>
-                    )}
-                  </motion.div>
-                );
-              })}
+
+                      {/* 이미지 */}
+                      {emotionImage && (
+                        <div
+                          className="w-[26px] h-[26px] rounded-[6px] mt-[2px] flex items-center justify-center border-[2px] overflow-hidden cursor-pointer hover:scale-110 transition-transform"
+                          style={{ borderColor: EMOTION_COLORS[diary.emotion] }}
+                          onClick={() => handleDayClick(d.day)}
+                        >
+                          <img src={emotionImage} alt="diary" className="w-full h-full object-cover" />
+                        </div>
+                      )}
+                    </motion.div>
+                  );
+                })
+              )}
             </div>
 
             {/* 감정 색상 가이드 */}

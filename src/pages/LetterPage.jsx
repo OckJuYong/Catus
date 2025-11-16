@@ -87,12 +87,12 @@ export default function LetterPage() {
         }}
       >
         <motion.div
-          className="relative bg-[#F5F5F0] rounded-[24px] w-[90%] max-w-[360px] max-h-[90vh] flex flex-col shadow-2xl overflow-hidden"
+          className="relative rounded-[24px] w-[90%] max-w-[360px] max-h-[90vh] flex flex-col shadow-2xl overflow-hidden"
+          style={{ backgroundColor: 'var(--color-bg-card)', perspective: '1200px' }}
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.3 }}
           onClick={(e) => e.stopPropagation()}
-          style={{ perspective: '1200px' }}
         >
           {/* 편지 봉투 뚜껑 (직사각형) */}
           <motion.div
@@ -124,13 +124,14 @@ export default function LetterPage() {
             {/* 헤더 */}
             <div className="px-[16px] pt-[12px] pb-[12px] flex items-start justify-between">
               <div className="text-left">
-                <h2 className="text-[13px] font-semibold text-gray-800">
+                <h2 className="text-[13px] font-semibold" style={{ color: 'var(--color-text-primary)' }}>
                   {formatDate(currentMessage.date)}
                 </h2>
               </div>
               <button
                 onClick={() => navigate(ROUTES.HOME)}
-                className="text-gray-500 hover:text-gray-700 text-[26px] leading-none bg-transparent border-0"
+                className="text-[26px] leading-none bg-transparent border-0"
+                style={{ color: 'var(--color-text-secondary)' }}
               >
                 ×
               </button>
@@ -146,7 +147,8 @@ export default function LetterPage() {
                   animate={{ x: 0, opacity: 1 }}
                   exit={{ x: direction > 0 ? -300 : 300, opacity: 0 }}
                   transition={{ duration: 0.3, ease: "easeInOut" }}
-                  className="bg-white p-[12px] rounded-xl shadow-sm border border-gray-200"
+                  className="p-[12px] rounded-xl shadow-sm border"
+                  style={{ backgroundColor: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }}
                 >
                   <img
                     src={getDiaryImage()}
@@ -296,16 +298,16 @@ export default function LetterPage() {
                   exit={{ x: direction > 0 ? -300 : 300, opacity: 0 }}
                   transition={{ duration: 0.3, ease: "easeInOut" }}
                 >
-                  <p className="text-[13px] text-gray-700 mb-[4px] leading-relaxed whitespace-pre-line">
+                  <p className="text-[13px] mb-[4px] leading-relaxed whitespace-pre-line" style={{ color: 'var(--color-text-primary)' }}>
                     {currentMessage.text}
                   </p>
-                  <p className="text-[11px] text-[#6B6B6B]">- 익명의 친구로부터</p>
+                  <p className="text-[11px]" style={{ color: 'var(--color-text-secondary)' }}>- 익명의 친구로부터</p>
                 </motion.div>
               </AnimatePresence>
 
               {/* 메시지 개수 표시 */}
               {totalMessages > 1 && (
-                <div className="absolute bottom-[20px] right-[16px] text-[10px] text-gray-400">
+                <div className="absolute bottom-[20px] right-[16px] text-[10px]" style={{ color: 'var(--color-text-tertiary)' }}>
                   {totalMessages}개의 메시지
                 </div>
               )}
