@@ -2,6 +2,8 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { TutorialProvider } from './contexts/TutorialContext';
 import { DarkModeProvider } from './contexts/DarkModeContext';
+import ErrorBoundary from './components/ErrorBoundary';
+import { PrivateRoute } from './components/PrivateRoute';
 import LoginPage from './pages/LoginPage';
 import KakaoCallbackPage from './pages/KakaoCallbackPage';
 import OnboardingPage from './pages/OnboardingPage';
@@ -22,33 +24,38 @@ import Big5TestPage from './pages/Big5TestPage';
 
 function App() {
   return (
-    <AuthProvider>
-      <DarkModeProvider>
-        <TutorialProvider>
-          <Router>
-            <Routes>
-              <Route path="/" element={<LoginPage />} />
-              <Route path="/auth/kakao/callback" element={<KakaoCallbackPage />} />
-              <Route path="/onboarding" element={<OnboardingPage />} />
-              <Route path="/onboarding/flow" element={<Onboarding />} />
-              <Route path="/home" element={<HomePage />} />
-              <Route path="/chat" element={<ChatPage />} />
-              <Route path="/calendar" element={<CalendarPage />} />
-              <Route path="/diary-reveal/:date" element={<DiaryRevealPage />} />
-              <Route path="/diary2/:date" element={<DiaryDetailPage2 />} />
-              <Route path="/diary/:date" element={<DiaryDetailPage />} />
-              <Route path="/support" element={<SupportPage />} />
-              <Route path="/letter" element={<LetterPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
-              <Route path="/random-diary" element={<RandomDiaryPage />} />
-              <Route path="/big5/stats" element={<Big5StatsPage />} />
-              <Route path="/big5/test" element={<Big5TestPage />} />
-            </Routes>
-          </Router>
-        </TutorialProvider>
-      </DarkModeProvider>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <DarkModeProvider>
+          <TutorialProvider>
+            <Router>
+              <Routes>
+                {/* Public Routes */}
+                <Route path="/" element={<LoginPage />} />
+                <Route path="/auth/kakao/callback" element={<KakaoCallbackPage />} />
+                <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+
+                {/* Protected Routes */}
+                <Route path="/onboarding" element={<PrivateRoute><OnboardingPage /></PrivateRoute>} />
+                <Route path="/onboarding/flow" element={<PrivateRoute><Onboarding /></PrivateRoute>} />
+                <Route path="/home" element={<PrivateRoute><HomePage /></PrivateRoute>} />
+                <Route path="/chat" element={<PrivateRoute><ChatPage /></PrivateRoute>} />
+                <Route path="/calendar" element={<PrivateRoute><CalendarPage /></PrivateRoute>} />
+                <Route path="/diary-reveal/:date" element={<PrivateRoute><DiaryRevealPage /></PrivateRoute>} />
+                <Route path="/diary2/:date" element={<PrivateRoute><DiaryDetailPage2 /></PrivateRoute>} />
+                <Route path="/diary/:date" element={<PrivateRoute><DiaryDetailPage /></PrivateRoute>} />
+                <Route path="/support" element={<PrivateRoute><SupportPage /></PrivateRoute>} />
+                <Route path="/letter" element={<PrivateRoute><LetterPage /></PrivateRoute>} />
+                <Route path="/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
+                <Route path="/random-diary" element={<PrivateRoute><RandomDiaryPage /></PrivateRoute>} />
+                <Route path="/big5/stats" element={<PrivateRoute><Big5StatsPage /></PrivateRoute>} />
+                <Route path="/big5/test" element={<PrivateRoute><Big5TestPage /></PrivateRoute>} />
+              </Routes>
+            </Router>
+          </TutorialProvider>
+        </DarkModeProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

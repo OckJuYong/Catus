@@ -88,28 +88,6 @@ export const useChat = (): UseChatReturn => {
     } catch (err) {
       logError(err, { action: 'sendMessage' });
       setError('메시지 전송에 실패했습니다.');
-
-      // Mock 응답 (백엔드 미구현 시)
-      if (import.meta.env.VITE_ENABLE_DEBUG === 'true') {
-        const mockResponses = [
-          '그랬구나! 더 자세히 말해줄 수 있어?',
-          '정말 흥미로운 이야기네. 그때 기분이 어땠어?',
-          '잘 들었어. 다른 일은 없었어?',
-          '그 상황에서 어떻게 대처했어?',
-          '충분히 그럴 수 있어. 지금은 기분이 좀 어때?',
-        ];
-
-        const aiMessage: ChatMessage = {
-          id: Date.now() + 1,
-          type: 'ai',
-          text: mockResponses[Math.floor(Math.random() * mockResponses.length)]!,
-          timestamp: new Date(),
-        };
-
-        setTimeout(() => {
-          setMessages((prev) => [...prev, aiMessage]);
-        }, 1000);
-      }
     } finally {
       setIsAITyping(false);
     }

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { ROUTES } from "../constants/routes";
@@ -21,6 +21,24 @@ export default function CalendarPage() {
 
   // Fetch real diary data from API
   const { diaries: diaryData, loading } = useDiaryList(year, month);
+
+  // Browser back button handling for modal
+  useEffect(() => {
+    // Push a new history state when modal opens
+    window.history.pushState({ modal: 'calendar' }, '');
+
+    const handlePopState = (event: PopStateEvent) => {
+      // Close modal when back button is pressed
+      navigate(ROUTES.HOME);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [navigate]);
 
   // SVG 이미지 생성 함수
   const createEmotionImage = (color: string, emoji: string): string => {
@@ -69,7 +87,10 @@ export default function CalendarPage() {
   const handleDayClick = (d: number): void => {
     if (!d) return;
     const dateStr = `${year}-${String(displayMonth + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-    if (diaryData[dateStr]) navigate(`${ROUTES.DIARY}/${dateStr}`);
+    // Type guard: 일기 데이터 존재 및 유효성 확인
+    if (diaryData && diaryData[dateStr]) {
+      navigate(`${ROUTES.DIARY}/${dateStr}`);
+    }
   };
 
   return (
@@ -162,11 +183,12 @@ export default function CalendarPage() {
                   const dateStr = d.isCurrentMonth
                     ? `${year}-${String(displayMonth + 1).padStart(2, "0")}-${String(d.day).padStart(2, "0")}`
                     : null;
-                  const diary = dateStr ? diaryData[dateStr] : null;
+                  // Type guard: diaryData와 dateStr 유효성 검증
+                  const diary = dateStr && diaryData ? diaryData[dateStr] : null;
                   const today = d.isCurrentMonth && isToday(d.day);
 
-                  // Create emotion image if diary exists
-                  const emotionImage = diary ?
+                  // Create emotion image if diary exists and has valid emotion
+                  const emotionImage = diary && diary.emotion && EMOTION_COLORS[diary.emotion] ?
                     createEmotionImage(EMOTION_COLORS[diary.emotion], emotionEmojiMap[diary.emotion]) :
                     null;
 
@@ -193,10 +215,10 @@ export default function CalendarPage() {
                       </div>
 
                       {/* 이미지 */}
-                      {emotionImage && (
+                      {emotionImage && diary && diary.emotion && (
                         <div
                           className="w-[26px] h-[26px] rounded-[6px] mt-[2px] flex items-center justify-center border-[2px] overflow-hidden cursor-pointer hover:scale-110 transition-transform"
-                          style={{ borderColor: EMOTION_COLORS[diary!.emotion] }}
+                          style={{ borderColor: EMOTION_COLORS[diary.emotion] || '#ccc' }}
                           onClick={() => handleDayClick(d.day)}
                         >
                           <img src={emotionImage} alt="diary" className="w-full h-full object-cover" />

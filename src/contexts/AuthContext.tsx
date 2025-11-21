@@ -6,6 +6,8 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import axios from 'axios';
 import type { User } from '../types';
 import { getToken, setToken, removeToken, getRefreshToken, setRefreshToken } from '../utils/storage';
+import { setTokenRefreshCallback } from '../utils/api';
+import { clearAllChatMessages } from '../utils/indexedDB';
 
 interface AuthContextValue {
   user: User | null;
@@ -58,8 +60,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           localStorage.setItem('catus_user', JSON.stringify(userData));
         } catch (error) {
           console.error('Token validation failed:', error);
-          // 토큰이 만료되었으면 갱신 시도
-          await refreshAccessToken();
+          // 토큰이 만료되었으면 모든 토큰 제거하고 로그아웃 (무한 루프 방지)
+          removeToken();
+          localStorage.removeItem('catus_refresh_token');
+          localStorage.removeItem('catus_user');
+          setUser(null);
         }
       }
 
@@ -67,7 +72,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     };
 
     initAuth();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // 초기 마운트 시에만 실행 (refreshAccessToken 의존성 제거로 무한 루프 방지)
 
   // 액세스 토큰 갱신
   const refreshAccessToken = async (): Promise<string | null> => {
@@ -99,10 +105,84 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
+  // API 인터셉터에 토큰 갱신 콜백 등록
+  useEffect(() => {
+    setTokenRefreshCallback(refreshAccessToken);
+
+    // Cleanup: 컴포넌트 언마운트 시 콜백 제거
+    return () => {
+      setTokenRefreshCallback(null);
+    };
+  }, []);
+
+  // Cross-tab storage synchronization using BroadcastChannel
+  useEffect(() => {
+    // Check BroadcastChannel support
+    if (typeof BroadcastChannel === 'undefined') {
+      console.warn('BroadcastChannel not supported in this browser');
+      return;
+    }
+
+    const channel = new BroadcastChannel('catus_auth_channel');
+
+    // Listen for auth events from other tabs
+    const handleMessage = (event: MessageEvent) => {
+      const { type, payload } = event.data;
+
+      switch (type) {
+        case 'AUTH_LOGIN':
+          // Another tab logged in, sync user data
+          if (payload.user) {
+            setUser(payload.user);
+          }
+          break;
+
+        case 'AUTH_LOGOUT':
+          // Another tab logged out, clear local state
+          setUser(null);
+          break;
+
+        case 'AUTH_UPDATE':
+          // Another tab updated user data
+          if (payload.user) {
+            setUser(payload.user);
+          }
+          break;
+
+        default:
+          break;
+      }
+    };
+
+    channel.addEventListener('message', handleMessage);
+
+    // Cleanup
+    return () => {
+      channel.removeEventListener('message', handleMessage);
+      channel.close();
+    };
+  }, []);
+
+  // Broadcast auth changes to other tabs
+  const broadcastAuthChange = (type: string, payload?: any) => {
+    if (typeof BroadcastChannel !== 'undefined') {
+      try {
+        const channel = new BroadcastChannel('catus_auth_channel');
+        channel.postMessage({ type, payload });
+        channel.close();
+      } catch (error) {
+        console.error('Failed to broadcast auth change:', error);
+      }
+    }
+  };
+
   // 로그인
   const login = (userData: User): void => {
     setUser(userData);
     localStorage.setItem('catus_user', JSON.stringify(userData));
+
+    // Broadcast login to other tabs
+    broadcastAuthChange('AUTH_LOGIN', { user: userData });
   };
 
   // 로그아웃
@@ -129,6 +209,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     localStorage.removeItem('catus_user');
     removeToken();
     localStorage.removeItem('catus_refresh_token');
+
+    // IndexedDB 채팅 기록 삭제 (개인정보 보호)
+    try {
+      await clearAllChatMessages();
+      console.log('✅ IndexedDB chat messages cleared on logout');
+    } catch (error) {
+      console.error('❌ Failed to clear IndexedDB on logout:', error);
+    }
+
+    // Broadcast logout to other tabs
+    broadcastAuthChange('AUTH_LOGOUT');
   };
 
   // 사용자 정보 업데이트
@@ -138,6 +229,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const updatedUser = { ...user, ...updates };
     setUser(updatedUser);
     localStorage.setItem('catus_user', JSON.stringify(updatedUser));
+
+    // Broadcast update to other tabs
+    broadcastAuthChange('AUTH_UPDATE', { user: updatedUser });
   };
 
   // 액세스 토큰 가져오기 (API 호출 시 사용)

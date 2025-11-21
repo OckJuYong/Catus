@@ -1,17 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { Button } from "../components/common";
 import { ROUTES } from "../constants/routes";
 import { EMOTION_COLORS, EMOTION_EMOJIS } from "../constants/emotionColors";
-import { useAuth } from "../contexts/AuthContext";
 import { useSendChatMessage } from "../hooks/useApi";
 import { chatApi } from "../utils/api";
 import {
-  saveChatMessage,
+  saveChatMessageWithQuotaCheck,
   getChatMessagesByDate,
   markMessagesAsSynced
 } from "../utils/indexedDB";
+import { getTodayKey, getISOTimestamp } from "../utils/dateFormat";
+import { sanitizeText, escapeHtml } from "../utils/validation";
 import HomePage from "./HomePage";
 import catProfile from "../assets/images/cat-profile.png";
 import type { Emotion, ChatMessage } from "../types";
@@ -25,20 +25,22 @@ interface Message {
 
 export default function ChatPage() {
   const navigate = useNavigate();
-  const todayKey = new Date().toISOString().split('T')[0] || ''; // YYYY-MM-DD
+  const todayKey = getTodayKey(); // Timezone-safe 날짜 키
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isAITyping, setIsAITyping] = useState(false);
   const [showEmotionModal, setShowEmotionModal] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // 애니메이션 상태
   const [showChatModal, setShowChatModal] = useState(false);
 
+  // Race condition 방지용 refs
+  const lastRequestTimeRef = useRef<number>(0);
+  const isSubmittingRef = useRef<boolean>(false);
+
   // React Query mutations
   const sendMessageMutation = useSendChatMessage();
-  const createDiaryMutation = useCreateDiary();
 
   const todayLabel = new Date().toLocaleDateString("ko-KR", {
     year: "numeric",
@@ -64,13 +66,13 @@ export default function ChatPage() {
             id: 1,
             type: "ai",
             text: "안녕! 오늘 하루는 어땠어? 무슨 일이 있었는지 들려줘!",
-            timestamp: new Date().toISOString(),
+            timestamp: getISOTimestamp(),
           };
 
           setMessages([initialMessage]);
 
-          // IndexedDB에 저장
-          await saveChatMessage(todayKey, {
+          // IndexedDB에 저장 (quota 체크 포함)
+          await saveChatMessageWithQuotaCheck(todayKey, {
             role: 'assistant',
             content: initialMessage.text,
             timestamp: initialMessage.timestamp
@@ -88,8 +90,6 @@ export default function ChatPage() {
         }
       } catch (error) {
         console.error('Failed to load messages from IndexedDB:', error);
-      } finally {
-        setIsLoading(false);
       }
     };
 
@@ -107,21 +107,49 @@ export default function ChatPage() {
 
   // 메시지 전송
   const handleSendMessage = async (): Promise<void> => {
-    if (!inputValue.trim() || isAITyping) return;
+    // Race condition 방지: 중복 전송 체크
+    if (!inputValue.trim() || isAITyping || isSubmittingRef.current) {
+      return;
+    }
+
+    // Debouncing: 마지막 요청 후 500ms 이내 요청 무시
+    const now = Date.now();
+    if (now - lastRequestTimeRef.current < 500) {
+      console.log('Too fast! Request ignored (debouncing)');
+      return;
+    }
+
+    // 입력 정제 (trim + 중복 공백 제거 + XSS 방지)
+    const sanitized = sanitizeText(inputValue);
+    const cleaned = escapeHtml(sanitized);
+
+    // 입력 길이 검증 (최대 1000자)
+    if (cleaned.length === 0) {
+      return;
+    }
+
+    if (cleaned.length > 1000) {
+      alert('메시지는 최대 1000자까지 입력 가능합니다.');
+      return;
+    }
+
+    // 전송 중 플래그 설정
+    isSubmittingRef.current = true;
+    lastRequestTimeRef.current = now;
 
     const userMessage: Message = {
       id: Date.now(),
       type: "user",
-      text: inputValue,
-      timestamp: new Date().toISOString(),
+      text: cleaned,
+      timestamp: getISOTimestamp(),
     };
 
     setMessages((prev) => [...prev, userMessage]);
     setInputValue("");
     setIsAITyping(true);
 
-    // 사용자 메시지를 IndexedDB에 저장 (동기화 안됨)
-    await saveChatMessage(todayKey, {
+    // 사용자 메시지를 IndexedDB에 저장 (동기화 안됨, quota 체크 포함)
+    await saveChatMessageWithQuotaCheck(todayKey, {
       role: 'user',
       content: userMessage.text,
       timestamp: userMessage.timestamp
@@ -136,13 +164,13 @@ export default function ChatPage() {
         id: Date.now() + 1,
         type: "ai",
         text: response.content,
-        timestamp: new Date().toISOString(),
+        timestamp: getISOTimestamp(),
       };
 
       setMessages((prev) => [...prev, aiMessage]);
 
-      // AI 응답을 IndexedDB에 저장 (동기화 안됨)
-      await saveChatMessage(todayKey, {
+      // AI 응답을 IndexedDB에 저장 (동기화 안됨, quota 체크 포함)
+      await saveChatMessageWithQuotaCheck(todayKey, {
         role: 'assistant',
         content: aiMessage.text,
         timestamp: aiMessage.timestamp
@@ -156,18 +184,20 @@ export default function ChatPage() {
         id: Date.now() + 1,
         type: "ai",
         text: "미안해, 지금 답변을 할 수 없어. 잠시 후 다시 시도해줄래?",
-        timestamp: new Date().toISOString(),
+        timestamp: getISOTimestamp(),
       };
       setMessages((prev) => [...prev, errorMessage]);
 
-      // 에러 메시지도 IndexedDB에 저장
-      await saveChatMessage(todayKey, {
+      // 에러 메시지도 IndexedDB에 저장 (quota 체크 포함)
+      await saveChatMessageWithQuotaCheck(todayKey, {
         role: 'assistant',
         content: errorMessage.text,
         timestamp: errorMessage.timestamp
       }, false);
     } finally {
       setIsAITyping(false);
+      // 전송 완료 후 플래그 해제
+      isSubmittingRef.current = false;
     }
   };
 
@@ -191,10 +221,7 @@ export default function ChatPage() {
       }));
 
       // 채팅 종료 및 일기 자동 생성 (백엔드에서 처리)
-      const diaryResult = await chatApi.endConversation(todayKey, chatLogs);
-
-      // 생성된 일기 ID로 상세 페이지 이동
-      const diaryId = diaryResult.diaryId;
+      await chatApi.endConversation(todayKey, chatLogs);
 
       // 백엔드 동기화 완료로 표시
       await markMessagesAsSynced(todayKey);
@@ -413,16 +440,24 @@ export default function ChatPage() {
             >
               <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>mic</span>
             </button>
-            <input
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-              placeholder="메시지를 입력하세요..."
-              disabled={isAITyping}
-              className="flex-1 border border-gray-300 rounded-[12px] text-sm focus:outline-none focus:border-[#5F6F52] disabled:bg-gray-100 disabled:text-gray-400"
-              style={{ paddingLeft: '16px', paddingRight: '16px', paddingTop: '11px', paddingBottom: '11px' }}
-            />
+            <div className="flex-1 relative">
+              <input
+                type="text"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSendMessage()}
+                placeholder="메시지를 입력하세요..."
+                disabled={isAITyping}
+                maxLength={1000}
+                className="w-full border border-gray-300 rounded-[12px] text-sm focus:outline-none focus:border-[#5F6F52] disabled:bg-gray-100 disabled:text-gray-400"
+                style={{ paddingLeft: '16px', paddingRight: '16px', paddingTop: '11px', paddingBottom: '11px' }}
+              />
+              {inputValue.length > 900 && (
+                <span className="absolute -top-6 right-0 text-xs text-gray-500">
+                  {inputValue.length}/1000
+                </span>
+              )}
+            </div>
             <button
               onClick={handleSendMessage}
               disabled={!inputValue.trim() || isAITyping}

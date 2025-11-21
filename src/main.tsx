@@ -3,6 +3,10 @@ import { createRoot } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import './index.css'
 import App from './App'
+import { initializeSecurity } from './utils/securityConfig'
+
+// 🔒 Security initialization (must run before React)
+initializeSecurity();
 
 // Create QueryClient instance
 const queryClient = new QueryClient({

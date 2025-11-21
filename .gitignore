@@ -29,3 +29,22 @@ dist-ssr
 *.sw?
 
 .vercel
+
+# Documentation (not needed for production)
+/documents
+/claudedocs
+/docs
+backup_before_feature_addition
+*.md
+!README.md
+
+# Test artifacts
+.playwright-mcp
+
+# Temporary files
+nul
+
+# Non-code Korean documents
+새 폴더/
+제미나이*.md
+사업계획서*.md

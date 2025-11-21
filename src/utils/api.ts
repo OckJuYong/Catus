@@ -4,7 +4,7 @@
  */
 
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
-import { getToken, removeToken } from './storage';
+import { getToken, removeToken, isTokenExpiringSoon, getRefreshToken } from './storage';
 import type {
   LoginResponse,
   SignupData,
@@ -60,14 +60,81 @@ const axiosInstance: AxiosInstance = axios.create({
 });
 
 /**
- * 요청 인터셉터 - 토큰 자동 추가
+ * Token refresh callback (AuthContext에서 설정)
+ */
+let tokenRefreshCallback: (() => Promise<string | null>) | null = null;
+
+export const setTokenRefreshCallback = (callback: (() => Promise<string | null>) | null): void => {
+  tokenRefreshCallback = callback;
+};
+
+/**
+ * Network retry configuration
+ */
+const MAX_RETRIES = 3;
+const RETRY_DELAY_BASE = 1000; // 1초
+
+/**
+ * Exponential backoff delay 계산
+ */
+const getRetryDelay = (retryCount: number): number => {
+  return RETRY_DELAY_BASE * Math.pow(2, retryCount); // 1s, 2s, 4s
+};
+
+/**
+ * Retry 가능한 에러인지 확인
+ */
+const isRetryableError = (error: AxiosError): boolean => {
+  // 네트워크 에러 (서버 응답 없음) - 재시도 가능
+  if (!error.response) {
+    return true;
+  }
+
+  // 5xx 서버 에러 - 재시도 가능
+  if (error.response.status >= 500 && error.response.status < 600) {
+    return true;
+  }
+
+  // 408 Request Timeout, 429 Too Many Requests - 재시도 가능
+  if (error.response.status === 408 || error.response.status === 429) {
+    return true;
+  }
+
+  // 4xx 클라이언트 에러 - 재시도 불가능 (잘못된 요청)
+  return false;
+};
+
+/**
+ * 요청 인터셉터 - 토큰 자동 추가 + 프로액티브 갱신
  */
 axiosInstance.interceptors.request.use(
-  (config) => {
-    const token = getToken();
+  async (config) => {
+    let token = getToken();
+
+    // 토큰이 곧 만료될 예정이면 프로액티브하게 갱신 (5분 전)
+    if (token && isTokenExpiringSoon(token, 5) && tokenRefreshCallback) {
+      console.log('🔄 Token expiring soon, refreshing proactively...');
+      try {
+        const newToken = await tokenRefreshCallback();
+        if (newToken) {
+          token = newToken;
+          console.log('✅ Token refreshed successfully');
+        }
+      } catch (error) {
+        console.error('❌ Proactive token refresh failed:', error);
+        // 갱신 실패 시 기존 토큰으로 계속 진행 (만료되면 401로 처리됨)
+      }
+    }
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // Retry 카운트 초기화 (첫 요청)
+    if (!config.headers['X-Retry-Count']) {
+      config.headers['X-Retry-Count'] = '0';
+    }
+
     return config;
   },
   (error) => {
@@ -76,24 +143,61 @@ axiosInstance.interceptors.request.use(
 );
 
 /**
- * 응답 인터셉터 - 에러 핸들링
+ * 응답 인터셉터 - 에러 핸들링 + Retry 로직
  */
 axiosInstance.interceptors.response.use(
   (response) => {
     return response;
   },
-  (error: AxiosError) => {
-    // 401 Unauthorized - 토큰 만료
-    if (error.response?.status === 401) {
-      removeToken();
-      window.location.href = '/';
-      return Promise.reject(new ApiError('인증이 만료되었습니다.', 401));
+  async (error: AxiosError) => {
+    const config = error.config;
+
+    // Retry 로직 실행
+    if (config && isRetryableError(error)) {
+      const retryCount = parseInt(config.headers?.['X-Retry-Count'] as string || '0', 10);
+
+      if (retryCount < MAX_RETRIES) {
+        const delay = getRetryDelay(retryCount);
+        console.log(`🔄 Retry attempt ${retryCount + 1}/${MAX_RETRIES} after ${delay}ms...`);
+
+        // 다음 재시도 카운트 설정
+        config.headers['X-Retry-Count'] = String(retryCount + 1);
+
+        // Exponential backoff delay
+        await new Promise((resolve) => setTimeout(resolve, delay));
+
+        // 요청 재시도
+        return axiosInstance(config);
+      } else {
+        console.error(`❌ Max retries (${MAX_RETRIES}) reached. Giving up.`);
+      }
+    }
+
+    // 네트워크 에러 (서버 응답 없음) - 로그아웃하지 않음
+    if (!error.response) {
+      const message = error.message || '네트워크 연결을 확인해주세요.';
+      return Promise.reject(new ApiError(message, 0));
+    }
+
+    // 401 Unauthorized - 실제 인증 실패만 처리 (토큰 만료, 잘못된 토큰 등)
+    if (error.response.status === 401) {
+      // 현재 경로가 공개 페이지가 아닌 경우에만 로그아웃
+      const publicPaths = ['/', '/auth/kakao/callback', '/privacy-policy'];
+      const currentPath = window.location.pathname;
+
+      if (!publicPaths.includes(currentPath)) {
+        removeToken();
+        localStorage.removeItem('catus_refresh_token');
+        localStorage.removeItem('catus_user');
+        window.location.href = '/';
+        return Promise.reject(new ApiError('인증이 만료되었습니다. 다시 로그인해주세요.', 401));
+      }
     }
 
     // 기타 에러
-    const message = (error.response?.data as any)?.message || error.message || '요청 처리 중 오류가 발생했습니다.';
-    const status = error.response?.status || 0;
-    const data = error.response?.data;
+    const message = (error.response.data as any)?.message || error.message || '요청 처리 중 오류가 발생했습니다.';
+    const status = error.response.status || 0;
+    const data = error.response.data;
 
     return Promise.reject(new ApiError(message, status, data));
   }

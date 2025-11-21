@@ -21,7 +21,17 @@
       "mcp__playwright__browser_snapshot",
       "mcp__playwright__browser_click",
       "mcp__playwright__browser_type",
-      "mcp__playwright__browser_evaluate"
+      "mcp__playwright__browser_evaluate",
+      "mcp__playwright__browser_wait_for",
+      "Bash(taskkill /F /PID 60496d 2)",
+      "Bash(nul)",
+      "Bash(npm audit:*)",
+      "mcp__sequential-thinking__sequentialthinking",
+      "Bash(node -e \"\nconst { buildEnhancedSystemInstruction } = require(''''./services/geminiEnhanced.js'''');\n\n// 예시 상황으로 프롬프트 생성\nconst systemInstruction = buildEnhancedSystemInstruction({\n  timeOfDay: ''''AFTERNOON'''',\n  recentEmotion: ''''neutral'''',\n  conversationCount: 25,\n  includeCharacter: true,\n  includeEmotion: true,\n  includeBig5: false\n});\n\nconsole.log(systemInstruction);\n\")",
+      "Bash(node -e:*)",
+      "Bash(prompts_json/ACTUAL_GEMINI_SYSTEM_INSTRUCTION.txt)",
+      "Bash(prompts_json/ACTUAL_GEMINI_SYSTEM_INSTRUCTION.json)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []

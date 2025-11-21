@@ -108,17 +108,19 @@ export default function HomePage({ hideButtons = false }: HomePageProps) {
   useEffect(() => {
     if (location.pathname !== ROUTES.HOME) return;
 
+    let timeoutId: NodeJS.Timeout | null = null;
+
     if (!isTutorialCompleted) {
       const checkFontLoaded = async (): Promise<void> => {
         try {
           await document.fonts.ready;
-          setTimeout(() => {
+          timeoutId = setTimeout(() => {
             startTutorial();
             setShowTutorial(true);
           }, 500);
         } catch (error) {
           console.error("폰트 로드 확인 중 오류:", error);
-          setTimeout(() => {
+          timeoutId = setTimeout(() => {
             startTutorial();
             setShowTutorial(true);
           }, 1000);
@@ -126,6 +128,13 @@ export default function HomePage({ hideButtons = false }: HomePageProps) {
       };
       checkFontLoaded();
     }
+
+    // Cleanup: 컴포넌트 언마운트 시 setTimeout 취소
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
   }, [isTutorialCompleted, location.pathname, startTutorial]);
 
   const handleTutorialComplete = (): void => setShowTutorial(false);

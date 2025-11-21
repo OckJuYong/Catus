@@ -151,3 +151,42 @@ export const today = (): Date => {
   d.setHours(0, 0, 0, 0);
   return d;
 };
+
+/**
+ * Timezone-safe 오늘 날짜 키 생성 (YYYY-MM-DD)
+ * 로컬 타임존 기준으로 일관된 날짜 키 생성
+ */
+export const getTodayKey = (): string => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+/**
+ * ISO timestamp 생성 (timezone 일관성 보장)
+ */
+export const getISOTimestamp = (): string => {
+  return new Date().toISOString();
+};
+
+/**
+ * 로컬 타임존 기준 날짜 문자열 → Date 객체
+ * UTC offset 보정하여 정확한 로컬 날짜 반환
+ */
+export const parseLocalDate = (dateString: string): Date => {
+  const [year, month, day] = dateString.split('-').map(Number);
+  // 로컬 타임존 기준으로 Date 생성 (UTC 변환 방지)
+  return new Date(year!, month! - 1, day!, 0, 0, 0, 0);
+};
+
+/**
+ * Date 객체 → 로컬 날짜 키 (YYYY-MM-DD)
+ */
+export const toLocalDateKey = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
