@@ -32,7 +32,7 @@ import type {
   OnboardingData,
 } from '../types';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://34.158.193.95/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/proxy';
 
 /**
  * API 에러 클래스
