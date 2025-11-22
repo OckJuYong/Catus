@@ -11,7 +11,8 @@ import HomePage from './HomePage';
 
 export default function DiaryDetailPage() {
   const navigate = useNavigate();
-  const { date } = useParams<{ date: string }>();
+  const { id } = useParams<{ id: string }>();
+  const diaryId = id ? parseInt(id, 10) : null;
 
   // Browser back button handling for modal
   useEffect(() => {
@@ -31,18 +32,18 @@ export default function DiaryDetailPage() {
     };
   }, [navigate]);
 
-  // Fetch diary data
+  // Fetch diary data (백엔드: GET /api/diary/{id})
   const { data: diaryData, isLoading, error } = useQuery({
-    queryKey: ['diary', 'byDate', date],
+    queryKey: ['diary', 'detail', diaryId],
     queryFn: async () => {
-      if (!date) throw new Error('날짜가 필요합니다.');
-      return await diaryApi.getByDate(date);
+      if (!diaryId) throw new Error('일기 ID가 필요합니다.');
+      return await diaryApi.getById(diaryId);
     },
-    enabled: !!date,
+    enabled: !!diaryId && !isNaN(diaryId),
     retry: 2,
   });
 
-  const diary: Diary | undefined = diaryData?.diary;
+  const diary: Diary | undefined = diaryData;
 
   // Loading state
   if (isLoading) {
@@ -61,7 +62,7 @@ export default function DiaryDetailPage() {
     return (
       <div className="min-h-screen bg-[#fef9f1] flex flex-col items-center justify-center p-4">
         <h1 className="text-2xl font-bold mb-4 text-gray-800">😢 일기를 찾을 수 없습니다</h1>
-        <p className="text-gray-600 mb-8">{date} 날짜의 일기가 존재하지 않습니다.</p>
+        <p className="text-gray-600 mb-8">일기 ID {diaryId}를 찾을 수 없습니다.</p>
         <button
           onClick={() => navigate(ROUTES.CALENDAR)}
           className="px-6 py-3 bg-[#5F6F52] text-white rounded-lg hover:opacity-90 transition-opacity"
@@ -72,8 +73,9 @@ export default function DiaryDetailPage() {
     );
   }
 
-  const emotionColor = EMOTION_COLORS[diary.emotion] || '#ccc';
-  const emotionEmoji = EMOTION_EMOJIS[diary.emotion] || '😐';
+  // diary.emotion이 없을 수 있으므로 기본값 설정
+  const emotionColor = '#ccc';
+  const emotionEmoji = '😐';
 
   return (
     <>
@@ -136,11 +138,11 @@ export default function DiaryDetailPage() {
               </div>
             </div>
 
-            {/* Picture (if exists) */}
-            {diary.pictureUrl && (
+            {/* Picture (백엔드 필드: imageUrl) */}
+            {diary.imageUrl && (
               <div className="rounded-2xl overflow-hidden shadow-lg bg-white">
                 <img
-                  src={diary.pictureUrl}
+                  src={diary.imageUrl}
                   alt="그림일기"
                   className="w-full h-auto object-cover"
                   onError={(e) => {
@@ -150,18 +152,20 @@ export default function DiaryDetailPage() {
               </div>
             )}
 
-            {/* Summary */}
-            <div className="bg-white rounded-2xl p-5 shadow-md">
-              <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
-                <span>📝</span>
-                <span>오늘의 요약</span>
-              </h3>
-              <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-                {diary.summary}
-              </p>
-            </div>
+            {/* Title */}
+            {diary.title && (
+              <div className="bg-white rounded-2xl p-5 shadow-md">
+                <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+                  <span>📝</span>
+                  <span>제목</span>
+                </h3>
+                <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+                  {diary.title}
+                </p>
+              </div>
+            )}
 
-            {/* Keywords (if exists) */}
+            {/* Content (백엔드 필드: content) */}
             {diary.content && (
               <div className="bg-white rounded-2xl p-5 shadow-md">
                 <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
@@ -174,37 +178,34 @@ export default function DiaryDetailPage() {
               </div>
             )}
 
-            {/* Chat Messages (if exists) */}
-            {diaryData?.messages && diaryData.messages.length > 0 && (
+            {/* Big5 Scores (백엔드 응답에 포함될 수 있음) */}
+            {diary.big5Scores && (
               <div className="bg-white rounded-2xl p-5 shadow-md">
-                <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                  <span>💭</span>
-                  <span>대화 기록</span>
+                <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+                  <span>🧠</span>
+                  <span>성격 분석</span>
                 </h3>
-                <div className="space-y-3 max-h-[300px] overflow-y-auto">
-                  {diaryData.messages.map((msg: ChatMessage, idx: number) => (
-                    <div
-                      key={idx}
-                      className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                    >
-                      <div
-                        className={`max-w-[80%] px-4 py-2 rounded-2xl ${
-                          msg.role === 'user'
-                            ? 'bg-[#5F6F52] text-white'
-                            : 'bg-gray-100 text-gray-800'
-                        }`}
-                      >
-                        <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                        <p
-                          className={`text-xs mt-1 ${
-                            msg.role === 'user' ? 'text-gray-200' : 'text-gray-500'
-                          }`}
-                        >
-                          {getRelativeTime(msg.timestamp)}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span>개방성 (Openness):</span>
+                    <span className="font-semibold">{diary.big5Scores.openness}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>성실성 (Conscientiousness):</span>
+                    <span className="font-semibold">{diary.big5Scores.conscientiousness}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>외향성 (Extraversion):</span>
+                    <span className="font-semibold">{diary.big5Scores.extraversion}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>친화성 (Agreeableness):</span>
+                    <span className="font-semibold">{diary.big5Scores.agreeableness}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>신경증 (Neuroticism):</span>
+                    <span className="font-semibold">{diary.big5Scores.neuroticism}</span>
+                  </div>
                 </div>
               </div>
             )}

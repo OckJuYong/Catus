@@ -9,6 +9,7 @@ import type {
   LoginResponse,
   SignupData,
   SignupResponse,
+  RefreshTokenResponse,
   ChatMessage,
   ChatHistory,
   ChatAnalysisResponse,
@@ -31,7 +32,7 @@ import type {
   OnboardingData,
 } from '../types';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://34.158.193.95/api';
 
 /**
  * API 에러 클래스
@@ -256,99 +257,106 @@ export const authApi = {
     post<SignupResponse>('/auth/signup', data),
 
   // 토큰 갱신
-  refreshToken: (refreshToken: string): Promise<LoginResponse> =>
-    post<LoginResponse>('/auth/refresh', { refreshToken }),
+  refreshToken: (refreshToken: string): Promise<RefreshTokenResponse> =>
+    post<RefreshTokenResponse>('/auth/refresh', { refreshToken }),
 
   // 로그아웃
   logout: (): Promise<{ message: string }> =>
     post('/auth/logout'),
 
+  // 인증 코드 생성 (회원 탈퇴용)
+  generateVerificationCode: (): Promise<{ code: string; expiresInMinutes: number }> =>
+    post('/auth/verification-code'),
+
   // 회원 탈퇴
-  withdraw: (password?: string): Promise<{ message: string }> =>
-    del('/auth/withdraw', password ? { data: { password } } : undefined),
+  withdraw: (password: string, verificationCode: string): Promise<{ message: string }> =>
+    del('/auth/withdraw', { data: { password, verificationCode } }),
 };
 
 /**
  * 💬 채팅 API
  */
 export const chatApi = {
-  // 메시지 전송 (AI 응답)
-  sendMessage: (content: string): Promise<{ role: string; content: string; timestamp: string }> =>
-    post('/chat/send', { content }),
+  // 메시지 전송 (백엔드: POST /api/chat/message)
+  sendMessage: (content: string): Promise<{ messageId: number; userMessage: string; aiResponse: string; timestamp: string }> =>
+    post('/chat/message', { message: content }),
 
-  // 대화 기록 조회 (특정 일기)
-  getHistory: (diaryId: string): Promise<ChatHistory> =>
-    get<ChatHistory>(`/chat/history/${diaryId}`),
+  // 대화 기록 조회 (백엔드: GET /api/chat/history)
+  getHistory: (page: number = 0, size: number = 20): Promise<ChatHistory> =>
+    get<ChatHistory>(`/chat/history?page=${page}&size=${size}`),
 
-  // 대화 종료 및 분석 (일기 생성)
-  endConversation: (date: string, messages: ChatMessage[]): Promise<ChatAnalysisResponse> =>
-    post<ChatAnalysisResponse>('/chat/end', { date, messages }),
+  // 특정 날짜 채팅 조회 (백엔드: GET /api/chat/context/{date})
+  getContextByDate: (date: string): Promise<{ date: string; messages: Array<{ id: number; userMessage: string; aiResponse: string; timestamp: string }> }> =>
+    get(`/chat/context/${date}`),
+
+  // 채팅 분석 (백엔드: POST /api/chat/analyze)
+  analyzeChat: (startDate: string, endDate: string): Promise<ChatAnalysisResponse> =>
+    post<ChatAnalysisResponse>('/chat/analyze', { startDate, endDate }),
 };
 
 /**
  * 📔 일기 API
  */
 export const diaryApi = {
-  // 일기 목록 조회 (월별)
+  // 일기 목록 조회 (백엔드: GET /api/diary/list)
   getList: (year: number, month: number): Promise<DiaryListResponse> =>
-    get<DiaryListResponse>(`/diaries?year=${year}&month=${month}`),
+    get<DiaryListResponse>(`/diary/list?year=${year}&month=${month}`),
 
-  // 특정 날짜 일기 조회
-  getByDate: (date: string): Promise<DiaryDetailResponse> =>
-    get<DiaryDetailResponse>(`/diaries/${date}`),
+  // 일기 상세 조회 (백엔드: GET /api/diary/{id})
+  getById: (id: number): Promise<DiaryDetailResponse> =>
+    get<DiaryDetailResponse>(`/diary/${id}`),
 
-  // 일기 생성 (수동 작성)
-  create: (data: { date: string; emotion: string; summary: string; pictureUrl?: string }): Promise<Diary> =>
-    post<Diary>('/diaries', data),
+  // 일기 수정 (백엔드: PUT /api/diary/{id})
+  update: (id: number, data: DiaryUpdateData): Promise<{ id: number; updatedAt: string; message: string }> =>
+    put(`/diary/${id}`, data),
 
-  // 일기 수정
-  update: (date: string, data: DiaryUpdateData): Promise<Diary> =>
-    put<Diary>(`/diaries/${date}`, data),
+  // 일기 삭제 (백엔드: DELETE /api/diary/{id})
+  delete: (id: number): Promise<{ message: string }> =>
+    del(`/diary/${id}`),
 
-  // 일기 삭제
-  delete: (date: string): Promise<{ message: string; deletedDate: string }> =>
-    del(`/diaries/${date}`),
-
-  // 랜덤 일기 조회 (익명 응원용)
-  getRandom: (): Promise<Diary> =>
-    get<Diary>('/diaries/random'),
+  // 랜덤 일기 조회 (백엔드: GET /api/diary/random)
+  getRandom: (): Promise<{ diaryId: number; title: string; date: string; previewText: string; thumbnailUrl: string }> =>
+    get('/diary/random'),
 };
 
 /**
- * 💌 익명 응원 메시지 API
+ * 💌 익명 메시지 API
  */
-export const supportApi = {
-  // 받은 응원 메시지 조회
-  getReceived: (): Promise<MessageResponse> =>
-    get<MessageResponse>('/support/received'),
+export const messageApi = {
+  // 받은 메시지 조회 (백엔드: GET /api/message/received)
+  getReceived: (page: number = 0, size: number = 20): Promise<{ messages: Array<{ id: number; content: string; diaryId: number; receivedAt: string; isRead: boolean }>; totalPages: number; unreadCount: number }> =>
+    get(`/message/received?page=${page}&size=${size}`),
 
-  // 보낸 응원 메시지 조회
-  getSent: (): Promise<MessageResponse> =>
-    get<MessageResponse>('/support/sent'),
+  // 알림 조회 (백엔드: GET /api/message/notifications)
+  getNotifications: (): Promise<{ unreadCount: number; notifications: Array<{ id: number; content: string; receivedAt: string }> }> =>
+    get('/message/notifications'),
 
-  // 익명 응원 메시지 전송 (랜덤 사용자에게)
-  send: (content: string, emotion: string): Promise<{ id: string; message: string; sentAt: string }> =>
-    post('/support/send', { content, emotion }),
+  // 메시지 전송 (백엔드: POST /api/message/send)
+  send: (diaryId: number, content: string): Promise<{ messageId: number; sentAt: string }> =>
+    post('/message/send', { diaryId, content }),
 
-  // 응원 메시지 읽음 처리
-  markAsRead: (messageId: string): Promise<{ id: string; isRead: boolean; readAt: string }> =>
-    put(`/support/${messageId}/read`),
+  // 메시지 읽음 처리 (백엔드: PUT /api/message/read/{id})
+  markAsRead: (messageId: number): Promise<{ message: string }> =>
+    put(`/message/read/${messageId}`),
 };
+
+// 하위 호환성을 위한 별칭
+export const supportApi = messageApi;
 
 /**
  * 🧠 Big5 성격 분석 API
  */
 export const big5Api = {
-  // 초기 성격 테스트
-  submitInitial: (answers: number[]): Promise<Big5TestResponse> =>
+  // 초기 성격 테스트 (백엔드: POST /api/big5/initial)
+  submitInitial: (answers: Array<{ questionId: number; score: number }>): Promise<Big5TestResponse> =>
     post<Big5TestResponse>('/big5/initial', { answers }),
 
-  // 현재 성격 점수 조회
+  // 현재 성격 점수 조회 (백엔드: GET /api/big5/current)
   getCurrent: (): Promise<Big5CurrentResponse> =>
     get<Big5CurrentResponse>('/big5/current'),
 
-  // 성격 변화 이력
-  getHistory: (period?: string): Promise<Big5HistoryResponse> =>
+  // 성격 변화 이력 (백엔드: GET /api/big5/history)
+  getHistory: (period?: 'weekly' | 'monthly' | 'yearly'): Promise<Big5HistoryResponse> =>
     get<Big5HistoryResponse>(`/big5/history${period ? `?period=${period}` : ''}`),
 };
 
@@ -356,24 +364,24 @@ export const big5Api = {
  * ⚙️ 설정 API
  */
 export const settingsApi = {
-  // 설정 조회
+  // 설정 조회 (백엔드: GET /api/settings)
   getSettings: (): Promise<SettingsResponse> =>
     get<SettingsResponse>('/settings'),
 
-  // 일기 생성 시간 변경
-  updateDiaryTime: (time: string): Promise<SettingsResponse> =>
-    put<SettingsResponse>('/settings/diary-time', { time }),
+  // 일기 생성 시간 변경 (백엔드: PUT /api/settings/diary-time)
+  updateDiaryTime: (time: string): Promise<{ diaryGenerationTime: string; message: string }> =>
+    put('/settings/diary-time', { time }),
 
-  // 알림 설정 변경
-  updateNotifications: (anonymous: boolean): Promise<SettingsResponse> =>
-    put<SettingsResponse>('/settings/notifications', { anonymous }),
+  // 알림 설정 변경 (백엔드: PUT /api/settings/notifications)
+  updateNotifications: (diaryCreated: boolean, messageReceived: boolean): Promise<{ notifications: { diaryCreated: boolean; messageReceived: boolean } }> =>
+    put('/settings/notifications', { diaryCreated, messageReceived }),
 
-  // 테마 설정 변경
-  updateTheme: (darkMode: boolean): Promise<SettingsResponse> =>
-    put<SettingsResponse>('/settings/theme', { darkMode }),
+  // 테마 설정 변경 (백엔드: PUT /api/settings/theme)
+  updateTheme: (darkMode: boolean): Promise<{ theme: { darkMode: boolean } }> =>
+    put('/settings/theme', { darkMode }),
 
-  // 프로필 수정
-  updateProfile: (nickname: string, password?: string): Promise<{ profile: User }> =>
+  // 프로필 수정 (백엔드: PUT /api/settings/profile)
+  updateProfile: (nickname: string, password?: string): Promise<{ nickname: string; updatedAt: string }> =>
     put('/settings/profile', { nickname, password }),
 };
 
@@ -407,7 +415,8 @@ const api = {
   user: userApi,
   chat: chatApi,
   diary: diaryApi,
-  support: supportApi,
+  message: messageApi,
+  support: supportApi, // 하위 호환성
   big5: big5Api,
   settings: settingsApi,
   stats: statsApi,
@@ -417,7 +426,7 @@ export default api;
 
 // User 타입 임포트를 위한 인터페이스
 interface User {
-  id: string;
+  id: number;
   nickname: string;
   profileImage?: string;
   createdAt: string;

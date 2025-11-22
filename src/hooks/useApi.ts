@@ -8,6 +8,7 @@ import {
   authApi,
   chatApi,
   diaryApi,
+  messageApi,
   supportApi,
   big5Api,
   settingsApi,
@@ -95,8 +96,9 @@ export const useLogout = (options?: UseMutationOptions<{ message: string }, ApiE
 // Chat Hooks
 // ============================================================================
 
+// 백엔드 응답: {messageId: number, userMessage: string, aiResponse: string, timestamp: string}
 export const useSendChatMessage = (
-  options?: UseMutationOptions<{ role: string; content: string; timestamp: string }, ApiError, string>
+  options?: UseMutationOptions<{ messageId: number; userMessage: string; aiResponse: string; timestamp: string }, ApiError, string>
 ) => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -108,10 +110,11 @@ export const useSendChatMessage = (
   });
 };
 
-export const useChatHistory = (diaryId: string, options?: UseQueryOptions<ChatHistory, ApiError>) => {
+// 백엔드: GET /api/chat/history (page, size 파라미터 사용, diaryId 아님)
+export const useChatHistory = (page: number = 0, size: number = 20, options?: UseQueryOptions<ChatHistory, ApiError>) => {
   return useQuery({
     queryKey: queryKeys.chat.history(),
-    queryFn: () => chatApi.getHistory(diaryId),
+    queryFn: () => chatApi.getHistory(page, size),
     ...options,
   });
 };
@@ -128,11 +131,12 @@ export const useDiaryList = (year: number, month: number, options?: UseQueryOpti
   });
 };
 
-export const useDiaryByDate = (date: string, options?: UseQueryOptions<DiaryDetailResponse, ApiError>) => {
+// 백엔드: GET /api/diary/{id} (date가 아니라 id 사용)
+export const useDiaryById = (id: number | null, options?: UseQueryOptions<DiaryDetailResponse, ApiError>) => {
   return useQuery({
-    queryKey: queryKeys.diary.byDate(date),
-    queryFn: () => diaryApi.getByDate(date),
-    enabled: !!date,
+    queryKey: queryKeys.diary.detail(String(id)),
+    queryFn: () => diaryApi.getById(id!),
+    enabled: !!id,
     ...options,
   });
 };
@@ -152,13 +156,14 @@ export const useCreateDiary = (
 };
 
 // ============================================================================
-// Support (익명 응원) Hooks
+// Message (익명 응원) Hooks
 // ============================================================================
 
-export const useReceivedMessages = (options?: UseQueryOptions<MessageResponse, ApiError>) => {
+// 백엔드: GET /api/message/received (page, size 파라미터 사용)
+export const useReceivedMessages = (page: number = 0, size: number = 20, options?: UseQueryOptions<MessageResponse, ApiError>) => {
   return useQuery({
-    queryKey: ['support', 'received'],
-    queryFn: () => supportApi.getReceived(),
+    queryKey: queryKeys.message.received(page),
+    queryFn: () => messageApi.getReceived(page, size),
     ...options,
   });
 };
@@ -230,10 +235,14 @@ export const useMonthlyStats = (year: number, month: number, options?: UseQueryO
 // Additional Settings Hooks
 // ============================================================================
 
-export const useUpdateNotifications = (options?: UseMutationOptions<SettingsResponse, ApiError, boolean>) => {
+// 백엔드: PUT /api/settings/notifications (diaryCreated, messageReceived 파라미터 사용)
+export const useUpdateNotifications = (
+  options?: UseMutationOptions<{ notifications: { diaryCreated: boolean; messageReceived: boolean } }, ApiError, { diaryCreated: boolean; messageReceived: boolean }>
+) => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (anonymous: boolean) => settingsApi.updateNotifications(anonymous),
+    mutationFn: ({ diaryCreated, messageReceived }: { diaryCreated: boolean; messageReceived: boolean }) =>
+      settingsApi.updateNotifications(diaryCreated, messageReceived),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.settings.all() });
     },

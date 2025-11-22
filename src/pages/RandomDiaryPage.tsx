@@ -6,10 +6,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { diaryApi, supportApi } from '../utils/api';
+import { diaryApi, messageApi } from '../utils/api';
 import { ROUTES } from '../constants/routes';
 import { EMOTION_COLORS, EMOTION_EMOJIS } from '../constants/emotionColors';
-import type { Diary, Emotion } from '../types';
+import type { DiaryRandomResponse, Emotion } from '../types';
 
 export default function RandomDiaryPage() {
   const navigate = useNavigate();
@@ -17,8 +17,8 @@ export default function RandomDiaryPage() {
   const [messageContent, setMessageContent] = useState('');
   const [isSending, setIsSending] = useState(false);
 
-  // 랜덤 일기 조회
-  const { data: diary, isLoading, error, refetch } = useQuery({
+  // 랜덤 일기 조회 (백엔드 응답: {diaryId, title, date, previewText, thumbnailUrl})
+  const { data: diary, isLoading, error, refetch } = useQuery<DiaryRandomResponse>({
     queryKey: ['random-diary'],
     queryFn: () => diaryApi.getRandom(),
     retry: false,
@@ -34,14 +34,14 @@ export default function RandomDiaryPage() {
     setShowMessageModal(true);
   };
 
-  // 익명 메시지 전송 (랜덤 사용자에게)
+  // 익명 메시지 전송 (백엔드: POST /api/message/send)
   const handleSendMessage = async () => {
-    if (!messageContent.trim()) return;
+    if (!messageContent.trim() || !diary) return;
 
     setIsSending(true);
     try {
-      // 랜덤 사용자에게 응원 메시지 전송 (diaryId 불필요)
-      await supportApi.send(messageContent, '응원');
+      // 백엔드 파라미터: diaryId, content
+      await messageApi.send(diary.diaryId, messageContent);
       alert('응원 메시지를 전달했어요! 😊');
       setShowMessageModal(false);
       setMessageContent('');
@@ -82,9 +82,9 @@ export default function RandomDiaryPage() {
     );
   }
 
-  const emotion = diary.emotion as Emotion;
-  const emotionColor = EMOTION_COLORS[emotion] || EMOTION_COLORS.보통;
-  const emotionEmoji = EMOTION_EMOJIS[emotion] || EMOTION_EMOJIS.보통;
+  // 백엔드 응답에 emotion 필드 없음 - 기본값 사용
+  const emotionColor = '#ccc';
+  const emotionEmoji = '📝';
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#fef9f1] to-[#f5efe3]">
@@ -120,29 +120,29 @@ export default function RandomDiaryPage() {
           </p>
         </div>
 
-        {/* 감정 */}
+        {/* 제목 */}
         <div className="text-center mb-6">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full" style={{ backgroundColor: emotionColor + '20' }}>
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gray-100">
             <span className="text-2xl">{emotionEmoji}</span>
-            <span className="font-medium" style={{ color: emotionColor }}>{emotion}</span>
+            <span className="font-medium text-gray-800">{diary.title}</span>
           </div>
         </div>
 
-        {/* 일기 이미지 */}
-        {diary.imageUrl && (
+        {/* 일기 이미지 (백엔드 필드: thumbnailUrl) */}
+        {diary.thumbnailUrl && (
           <div className="mb-6 rounded-2xl overflow-hidden shadow-lg">
             <img
-              src={diary.imageUrl}
+              src={diary.thumbnailUrl}
               alt="Diary illustration"
               className="w-full h-auto"
             />
           </div>
         )}
 
-        {/* 일기 내용 */}
+        {/* 일기 미리보기 (백엔드 필드: previewText) */}
         <div className="bg-white rounded-2xl p-6 shadow-md mb-6">
           <p className="text-gray-800 leading-relaxed whitespace-pre-wrap">
-            {diary.content}
+            {diary.previewText}
           </p>
         </div>
 

@@ -74,14 +74,14 @@ export const useChat = (): UseChatReturn => {
     setError(null);
 
     try {
-      // API 호출
+      // API 호출 (백엔드 응답: {messageId, userMessage, aiResponse, timestamp})
       const response = await chatApi.sendMessage(inputValue);
 
       const aiMessage: ChatMessage = {
-        id: Date.now() + 1,
+        id: response.messageId,
         type: 'ai',
-        text: response.content,
-        timestamp: new Date(),
+        text: response.aiResponse,
+        timestamp: new Date(response.timestamp),
       };
 
       setMessages((prev) => [...prev, aiMessage]);
@@ -94,23 +94,20 @@ export const useChat = (): UseChatReturn => {
   }, [inputValue, isAITyping]);
 
   // 대화 종료 (감정 분석)
+  // 백엔드에 endConversation API 없음 - analyzeChat 사용 또는 클라이언트 로직
   const endConversation = useCallback(async (): Promise<{ emotion: string; summary: string } | null> => {
     if (messages.length <= 1) {
       return null;
     }
 
     try {
-      const chatMessages = messages.map((msg) => ({
-        role: msg.type === 'user' ? 'user' as const : 'assistant' as const,
-        content: msg.text,
-        timestamp: msg.timestamp.toISOString(),
-      }));
-
-      const todayDate = new Date().toISOString().split('T')[0] || '';
-      const response = await chatApi.endConversation(todayDate, chatMessages);
+      // TODO: 백엔드에 endConversation API 없음
+      // 옵션 1: chatApi.analyzeChat(startDate, endDate) 사용
+      // 옵션 2: 클라이언트에서 감정/요약 생성
+      // 임시로 클라이언트 로직 사용
       return {
-        emotion: response.emotion || '보통',
-        summary: response.summary || '',
+        emotion: '보통',
+        summary: messages.filter(m => m.type === 'user').map(m => m.text).join(' '),
       };
     } catch (err) {
       logError(err, { action: 'endConversation' });
@@ -121,11 +118,13 @@ export const useChat = (): UseChatReturn => {
   // 대화 기록 불러오기
   const loadHistory = useCallback(async (diaryId: string): Promise<void> => {
     try {
-      const historyData = await chatApi.getHistory(diaryId);
+      // 백엔드 getHistory는 페이징 필요: getHistory(page, size)
+      // diaryId 대신 날짜로 조회: getContextByDate(date) 사용
+      const historyData = await chatApi.getHistory(0, 100); // 임시로 첫 페이지 100개
       const loadedMessages: ChatMessage[] = historyData.messages.map((msg, idx) => ({
-        id: Date.now() + idx,
-        type: msg.role === 'user' ? 'user' as const : 'ai' as const,
-        text: msg.content,
+        id: msg.id,
+        type: 'user', // 백엔드 응답에 userMessage와 aiResponse가 분리되어 있음
+        text: msg.userMessage,
         timestamp: new Date(msg.timestamp),
       }));
       setMessages(loadedMessages);

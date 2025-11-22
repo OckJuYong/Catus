@@ -3,7 +3,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { supportApi } from '../utils/api';
+import { messageApi } from '../utils/api';
 import { logError } from '../utils/errorHandler';
 import type { AnonymousMessage } from '../types';
 
@@ -13,10 +13,10 @@ interface UseSupportReturn {
   loading: boolean;
   error: unknown | null;
   unreadCount: number;
-  fetchReceived: () => Promise<void>;
+  fetchReceived: (page?: number, size?: number) => Promise<void>;
   fetchSent: () => Promise<void>;
-  sendMessage: (messageData: { content: string; emotion: string }) => Promise<[AnonymousMessage, null] | [null, unknown]>;
-  markAsRead: (messageId: string) => Promise<void>;
+  sendMessage: (diaryId: number, content: string) => Promise<[AnonymousMessage, null] | [null, unknown]>;
+  markAsRead: (messageId: number) => Promise<void>;
 }
 
 /**
@@ -28,30 +28,40 @@ export const useSupport = (): UseSupportReturn => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<unknown | null>(null);
 
-  // 받은 메시지 조회
-  const fetchReceived = useCallback(async (): Promise<void> => {
+  // 받은 메시지 조회 (백엔드: GET /api/message/received)
+  const fetchReceived = useCallback(async (page: number = 0, size: number = 20): Promise<void> => {
     setLoading(true);
     setError(null);
 
     try {
-      const data = await supportApi.getReceived();
-      setReceivedMessages(data.messages);
+      const data = await messageApi.getReceived(page, size);
+      // 백엔드 응답: {messages: [{id, content, diaryId, receivedAt, isRead}], totalPages, unreadCount}
+      // AnonymousMessage 타입으로 변환
+      const messages: AnonymousMessage[] = data.messages.map(msg => ({
+        id: msg.id,
+        content: msg.content,
+        diaryId: msg.diaryId,
+        isRead: msg.isRead,
+        receivedAt: msg.receivedAt,
+      }));
+      setReceivedMessages(messages);
     } catch (err) {
-      logError(err, { action: 'fetchReceived' });
+      logError(err, { action: 'fetchReceived', page, size });
       setError(err);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // 보낸 메시지 조회
+  // 보낸 메시지 조회 (백엔드 미지원 - API 없음)
   const fetchSent = useCallback(async (): Promise<void> => {
     setLoading(true);
     setError(null);
 
     try {
-      const data = await supportApi.getSent();
-      setSentMessages(data.messages);
+      // TODO: 백엔드에 보낸 메시지 조회 API 없음
+      // 현재는 빈 배열 반환
+      setSentMessages([]);
     } catch (err) {
       logError(err, { action: 'fetchSent' });
       setError(err);
@@ -60,22 +70,25 @@ export const useSupport = (): UseSupportReturn => {
     }
   }, []);
 
-  // 메시지 전송
+  // 메시지 전송 (백엔드: POST /api/message/send)
   const sendMessage = useCallback(async (
-    messageData: { content: string; emotion: string }
+    diaryId: number,
+    content: string
   ): Promise<[AnonymousMessage, null] | [null, unknown]> => {
     setLoading(true);
     setError(null);
 
     try {
-      const result = await supportApi.send(messageData.content, messageData.emotion);
+      // 백엔드 응답: {messageId, sentAt}
+      const result = await messageApi.send(diaryId, content);
 
-      // 전송된 메시지를 임시로 추가 (실제로는 fetchSent 호출 필요)
+      // 전송된 메시지를 임시로 추가
       const newMessage: AnonymousMessage = {
-        id: result.id,
-        text: messageData.content,
+        id: result.messageId,
+        content: content,
+        diaryId: diaryId,
         isRead: false,
-        createdAt: result.sentAt,
+        receivedAt: result.sentAt,
       };
 
       setSentMessages((prev) => [newMessage, ...prev]);
@@ -86,7 +99,7 @@ export const useSupport = (): UseSupportReturn => {
 
       return [newMessage, null];
     } catch (err) {
-      logError(err, { action: 'sendMessage', messageData });
+      logError(err, { action: 'sendMessage', diaryId, content });
       setError(err);
 
       if (window.showToast) {
@@ -99,10 +112,10 @@ export const useSupport = (): UseSupportReturn => {
     }
   }, []);
 
-  // 메시지 읽음 처리
-  const markAsRead = useCallback(async (messageId: string): Promise<void> => {
+  // 메시지 읽음 처리 (백엔드: PUT /api/message/read/{id})
+  const markAsRead = useCallback(async (messageId: number): Promise<void> => {
     try {
-      await supportApi.markAsRead(messageId);
+      await messageApi.markAsRead(messageId);
 
       // 로컬 상태 업데이트
       setReceivedMessages((prev) =>

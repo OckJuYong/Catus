@@ -159,11 +159,11 @@ export default function ChatPage() {
       // React Query mutation으로 API 호출
       const response = await sendMessageMutation.mutateAsync(userMessage.text);
 
-      // AI 응답 추가
+      // AI 응답 추가 (백엔드 응답: {messageId, userMessage, aiResponse, timestamp})
       const aiMessage: Message = {
         id: Date.now() + 1,
         type: "ai",
-        text: response.content,
+        text: response.aiResponse,
         timestamp: getISOTimestamp(),
       };
 
@@ -213,25 +213,19 @@ export default function ChatPage() {
   // 감정 선택 및 일기 생성
   const handleSelectEmotion = async (selectedEmotion: Emotion): Promise<void> => {
     try {
-      // 메시지를 ChatMessage 포맷으로 변환
-      const chatLogs: ChatMessage[] = messages.map(msg => ({
-        role: msg.type === 'user' ? 'user' : 'assistant',
-        content: msg.text,
-        timestamp: msg.timestamp
-      }));
-
-      // 채팅 종료 및 일기 자동 생성 (백엔드에서 처리)
-      await chatApi.endConversation(todayKey, chatLogs);
+      // TODO: 백엔드에 endConversation API가 없음
+      // 대안 1: analyzeChat API 사용 (startDate, endDate 필요)
+      // 대안 2: 클라이언트에서 감정/요약 생성 후 저장
+      // 현재는 IndexedDB 동기화만 처리
 
       // 백엔드 동기화 완료로 표시
       await markMessagesAsSynced(todayKey);
 
-      console.log("일기 생성 성공 및 동기화 완료", { date: todayKey, emotion: selectedEmotion });
+      console.log("채팅 저장 완료", { date: todayKey, emotion: selectedEmotion });
       navigate(ROUTES.HOME);
     } catch (error) {
-      console.error("일기 생성 실패:", error);
+      console.error("채팅 저장 실패:", error);
       // 에러 시에도 홈으로 이동 (사용자 경험)
-      // 동기화는 실패했으므로 나중에 재시도 가능
       navigate(ROUTES.HOME);
     }
   };

@@ -10,22 +10,33 @@ export interface LoginResponse {
   accessToken: string;
   refreshToken: string;
   isNewUser: boolean;
+  userId: number;
 }
 
 export interface SignupData {
   nickname: string;
-  password?: string;
-  diaryTime: string;
+  password: string;
+  diaryGenerationTime: string;
 }
 
 export interface SignupResponse {
-  userId: string;
   message: string;
+  userId: number;
+}
+
+export interface VerificationCodeResponse {
+  code: string;
+  expiresInMinutes: number;
+}
+
+export interface RefreshTokenResponse {
+  accessToken: string;
+  refreshToken: string;
 }
 
 // ===== 사용자 관련 타입 =====
 export interface User {
-  id: string;
+  id: number;
   nickname: string;
   profileImage?: string;
   createdAt: string;
@@ -45,83 +56,153 @@ export interface ChatMessage {
   timestamp: string;
 }
 
-export interface ChatHistory {
-  messages: ChatMessage[];
-  pagination?: {
-    page: number;
-    size: number;
-    total: number;
-  };
+// 백엔드: POST /api/chat/message 응답
+export interface ChatMessageResponse {
+  messageId: number;
+  userMessage: string;
+  aiResponse: string;
+  timestamp: string;
 }
 
+// 백엔드: GET /api/chat/history 응답
+export interface ChatHistory {
+  messages: Array<{
+    id: number;
+    userMessage: string;
+    aiResponse: string;
+    timestamp: string;
+  }>;
+  totalPages: number;
+  currentPage: number;
+}
+
+// 백엔드: GET /api/chat/context/{date} 응답
+export interface ChatContextResponse {
+  date: string;
+  messages: Array<{
+    id: number;
+    userMessage: string;
+    aiResponse: string;
+    timestamp: string;
+  }>;
+}
+
+// 백엔드: POST /api/chat/analyze 응답
 export interface ChatAnalysisResponse {
-  diaryId: string;
-  emotion: string;
+  period: {
+    start: string;
+    end: string;
+  };
+  emotionScores: {
+    openness: number;
+    conscientiousness: number;
+    extraversion: number;
+    agreeableness: number;
+    neuroticism: number;
+  };
   summary: string;
-  pictureUrl: string;
-  keywords: string[];
-  advice: string;
 }
 
 // ===== 일기 관련 타입 =====
-export interface Diary {
-  id: string;
-  date: string; // YYYY-MM-DD
-  emotion: Emotion;
-  summary: string;
-  content: string; // 일기 전체 내용
-  pictureUrl: string;
-  imageUrl?: string; // 이미지 URL (pictureUrl과 호환)
-  createdAt: string;
-  updatedAt?: string;
-}
-
+// 백엔드: GET /api/diary/list 응답
 export interface DiaryListResponse {
-  diaries: Diary[];
+  year: number;
+  month: number;
+  diaries: Array<{
+    id: number;
+    date: string;
+    title: string;
+    previewText: string;
+    thumbnailUrl: string;
+  }>;
   totalCount: number;
 }
 
+// 백엔드: GET /api/diary/{id} 응답
 export interface DiaryDetailResponse {
-  diary: Diary;
-  anonymousMessages: AnonymousMessage[];
-}
-
-export interface DiaryCreateData {
+  id: number;
   date: string;
-  chatLogs: ChatMessage[];
-}
-
-export interface DiaryUpdateData {
-  content?: string;
-  emotion?: Emotion;
-}
-
-// ===== 메시지 관련 타입 =====
-export interface AnonymousMessage {
-  id: string;
-  text: string;
-  isRead: boolean;
+  title: string;
+  content: string;
+  imageUrl: string;
+  big5Scores?: {
+    openness: number;
+    conscientiousness: number;
+    extraversion: number;
+    agreeableness: number;
+    neuroticism: number;
+  };
   createdAt: string;
 }
 
-export interface MessageNotification {
-  id: string;
-  message: AnonymousMessage;
-  unread: boolean;
+// 백엔드: PUT /api/diary/{id} 요청
+export interface DiaryUpdateData {
+  title?: string;
+  content?: string;
+}
+
+// 백엔드: GET /api/diary/random 응답
+export interface DiaryRandomResponse {
+  diaryId: number;
+  title: string;
+  date: string;
+  previewText: string;
+  thumbnailUrl: string;
+}
+
+// 호환성을 위한 Diary 타입 (기존 코드와 호환)
+export interface Diary {
+  id: number;
+  date: string;
+  title: string;
+  content: string;
+  imageUrl: string;
+  createdAt: string;
+}
+
+// ===== 메시지 관련 타입 =====
+// 백엔드: POST /api/message/send 응답
+export interface MessageSendResponse {
+  messageId: number;
+  sentAt: string;
+}
+
+// 백엔드: GET /api/message/received 응답
+export interface MessageReceivedResponse {
+  messages: Array<{
+    id: number;
+    content: string;
+    diaryId: number;
+    receivedAt: string;
+    isRead: boolean;
+  }>;
+  totalPages: number;
+  unreadCount: number;
+}
+
+// 백엔드: GET /api/message/notifications 응답
+export interface NotificationsResponse {
+  unreadCount: number;
+  notifications: Array<{
+    id: number;
+    content: string;
+    receivedAt: string;
+  }>;
+}
+
+// 호환성을 위한 타입
+export interface AnonymousMessage {
+  id: number;
+  content: string;
+  diaryId?: number;
+  isRead: boolean;
+  receivedAt: string;
 }
 
 export interface MessageResponse {
   messages: AnonymousMessage[];
-  pagination?: {
-    page: number;
-    size: number;
-    total: number;
-  };
-}
-
-export interface NotificationsResponse {
-  notifications: MessageNotification[];
-  unreadCount: number;
+  totalPages?: number;
+  unreadCount?: number;
 }
 
 // ===== Big5 성격 분석 타입 =====
@@ -133,37 +214,62 @@ export interface Big5Scores {
   neuroticism: number;
 }
 
+// 백엔드: POST /api/big5/initial 응답
 export interface Big5TestResponse {
-  scores: Big5Scores;
+  openness: number;
+  conscientiousness: number;
+  extraversion: number;
+  agreeableness: number;
+  neuroticism: number;
   analysis: string;
 }
 
+// 백엔드: GET /api/big5/current 응답
 export interface Big5CurrentResponse {
-  scores: Big5Scores;
-  lastUpdated: string;
+  openness: number;
+  conscientiousness: number;
+  extraversion: number;
+  agreeableness: number;
+  neuroticism: number;
 }
 
-export interface Big5HistoryItem {
-  date: string;
-  scores: Big5Scores;
-}
-
+// 백엔드: GET /api/big5/history 응답
 export interface Big5HistoryResponse {
-  history: Big5HistoryItem[];
-  chartData: any; // 차트 데이터 구조는 추후 정의
+  period: string;
+  history: Array<{
+    date: string;
+    openness: number;
+    conscientiousness: number;
+    extraversion: number;
+    agreeableness: number;
+    neuroticism: number;
+  }>;
 }
 
 // ===== 설정 관련 타입 =====
+// 백엔드: GET /api/settings 응답
+export interface SettingsResponse {
+  diaryGenerationTime: string;
+  notifications: {
+    diaryCreated: boolean;
+    messageReceived: boolean;
+  };
+  theme: {
+    darkMode: boolean;
+  };
+  profile: {
+    nickname: string;
+    email: string;
+  };
+}
+
+// 호환성을 위한 타입
 export interface Settings {
-  diaryTime: string; // HH:mm
+  diaryTime: string;
   notificationEnabled: boolean;
   kakaoNotificationEnabled: boolean;
   darkMode: boolean;
   nickname: string;
-}
-
-export interface SettingsResponse {
-  settings: Settings;
 }
 
 // ===== 통계 관련 타입 =====
