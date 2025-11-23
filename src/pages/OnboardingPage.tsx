@@ -165,15 +165,13 @@ export default function OnboardingPage() {
         localStorage.setItem('catus_user_occupation', updatedAnswers.occupation || '');
         localStorage.setItem('catus_user_purpose', updatedAnswers.purpose || '');
 
-        // 닉네임만 백엔드로 전송 (POST /api/auth/signup)
-        await api.auth.signup({
-          nickname: updatedAnswers.nickname || '달이집사',
-          password: 'temp123', // 카카오 로그인이므로 임시 비밀번호
-          diaryGenerationTime: '22:00' // 기본값
-        });
+        // 닉네임을 localStorage에도 저장
+        localStorage.setItem('catus_user_nickname', updatedAnswers.nickname || '달이집사');
 
         // 온보딩 완료 표시
         localStorage.setItem('catus_onboarding_completed', 'true');
+
+        console.log('✅ 온보딩 정보 저장 완료:', updatedAnswers);
 
         // 3.5초 후 Big5 테스트로 이동
         setTimeout(() => {
