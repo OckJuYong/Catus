@@ -173,9 +173,9 @@ export default function OnboardingPage() {
 
         console.log('✅ 온보딩 정보 저장 완료:', updatedAnswers);
 
-        // 3.5초 후 Big5 테스트로 이동
+        // 3.5초 후 홈으로 이동
         setTimeout(() => {
-          navigate('/big5-test');
+          navigate('/home');
         }, 3500);
       } catch (error: any) {
         console.error('온보딩 저장 실패:', error);
