@@ -193,25 +193,9 @@ export default function OnboardingPage() {
 
   if (isLoading) {
     return (
-      <div
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          width: "100vw",
-          height: "100vh",
-          zIndex: 9999,
-          background: "linear-gradient(to bottom, #2f2f2f 0%, #d9d4c8 100%)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          overflow: "hidden",
-          margin: 0,
-          padding: 0,
-        }}
-      >
+      <div className="fixed inset-0 w-screen h-screen bg-gradient-to-b from-[#fef9f1] to-[#f5efe3] flex items-center justify-center overflow-hidden z-[9999]">
         {/* 발자국 애니메이션 */}
-        <div style={{ position: "absolute", inset: 0 }}>
+        <div className="absolute inset-0">
           {[...Array(5)].map((_, i) => {
             const baseRight = 10 + i * 14;
             const baseBottom = 5 + i * 16;
@@ -236,8 +220,7 @@ export default function OnboardingPage() {
                   transform: `rotate(${i % 2 === 0 ? "-22deg" : "28deg"})`,
                   width: `${38 + i * 1.5}px`,
                   height: `${38 + i * 1.5}px`,
-                  filter: "brightness(0) invert(1)",
-                  opacity: 0.9,
+                  filter: "opacity(0.4)",
                 }}
               />
             );
@@ -247,15 +230,10 @@ export default function OnboardingPage() {
           <motion.img
             src={footprintIcon}
             alt="footprint-glow"
-            initial={{ opacity: 0, scale: 0.8, filter: "brightness(0) invert(1)" }}
+            initial={{ opacity: 0, scale: 0.8 }}
             animate={{
-              opacity: [0, 1, 1, 0],
+              opacity: [0, 0.6, 0.8, 0],
               scale: [0.8, 1, 1.2],
-              filter: [
-                "brightness(0) invert(1)",
-                "brightness(2) invert(1)",
-                "brightness(4) invert(1)",
-              ],
             }}
             transition={{
               delay: 1.8,
@@ -269,7 +247,6 @@ export default function OnboardingPage() {
               transform: "rotate(15deg)",
               width: "44px",
               height: "44px",
-              opacity: 0.9,
             }}
           />
         </div>
@@ -279,19 +256,9 @@ export default function OnboardingPage() {
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.6, delay: 0.3 }}
-          style={{
-            textAlign: "center",
-            zIndex: 10,
-          }}
+          className="text-center z-10"
         >
-          <p
-            style={{
-              color: "white",
-              fontSize: "1.3rem",
-              fontWeight: 500,
-              letterSpacing: "0.03em",
-            }}
-          >
+          <p className="text-gray-700 text-xl font-medium tracking-wide">
             간택 당하는 중...
           </p>
         </motion.div>
@@ -300,11 +267,11 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="relative w-full h-screen bg-main-bg flex flex-col overflow-hidden">
+    <div className="relative w-full h-screen bg-gradient-to-b from-[#fef9f1] to-[#f5efe3] flex flex-col overflow-hidden">
       {/* 상단 진행도 */}
-      <div className="w-full flex flex-col items-center pt-[10px] pb-4 bg-main-bg sticky top-0 z-30">
+      <div className="w-full flex flex-col items-center pt-[10px] pb-4 bg-gradient-to-b from-[#fef9f1] to-transparent sticky top-0 z-30">
         {/* 진행도 바 (80% 중앙) */}
-        <div className="relative w-[80%] h-[8px] rounded-full mb-2" style={{ backgroundColor: 'var(--color-border)' }}>
+        <div className="relative w-[80%] h-[8px] rounded-full mb-2 bg-gray-200">
           <motion.div
             className="absolute top-0 left-0 h-full bg-[#59B464] rounded-full"
             animate={{ width: `${progress}%` }}
@@ -320,7 +287,7 @@ export default function OnboardingPage() {
         </div>
 
         {/* 진행 단계 텍스트 */}
-        <p className="text-sm sm:text-base font-medium text-center" style={{ color: 'var(--color-text-primary)' }}>
+        <p className="text-sm sm:text-base font-medium text-center text-gray-700">
           Step {step + 1}/5 - 달이에게 당신을 알려주세요
         </p>
       </div>
@@ -422,11 +389,11 @@ export default function OnboardingPage() {
             initial={{ opacity: 0, y: 10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ duration: 0.4, ease: "easeOut" }}
-            className="flex justify-end items-center gap-1 mt-3"
+            className="flex justify-end items-center gap-2 mt-3"
           >
             <button
               onClick={handleSubmit}
-              className="bg-[#7F7F7F] text-white px-4 py-2 rounded-full text-sm h-[40px] flex items-center justify-center hover:opacity-80 transition-all border-none outline-none"
+              className="bg-[#59B464] text-white px-5 py-2 rounded-full text-sm h-[40px] flex items-center justify-center hover:bg-[#4a9b55] transition-all border-none outline-none shadow-md"
             >
               전송
             </button>
@@ -444,13 +411,13 @@ export default function OnboardingPage() {
                   }
                 }}
                 placeholder={step === 3 ? "닉네임을 입력해주세요" : "이야기를 입력해주세요."}
-                className="bubble-right w-[150px] sm:w-[200px] bg-[#7F7F7F] border-none outline-none custom-input"
+                className="bubble-right w-[150px] sm:w-[200px] bg-white border-none outline-none custom-input shadow-md"
               />
               <div
                 className="absolute right-[18px] top-1/2 -translate-y-1/4
                    w-0 h-0 border-t-[6px] border-t-transparent
                    border-b-[6px] border-b-transparent
-                   border-l-[13px] border-l-[#7F7F7F]"
+                   border-l-[13px] border-l-white"
               />
             </div>
           </motion.div>
@@ -458,8 +425,8 @@ export default function OnboardingPage() {
       </div>
 
       {/* 하단 */}
-      <div className="w-full text-center py-[15px] bg-main-bg">
-        <button onClick={handleSkip} className="text-sm sm:text-base transition-colors bg-transparent border-none outline-none" style={{ color: 'var(--color-text-primary)' }}>
+      <div className="w-full text-center py-[15px] bg-gradient-to-t from-[#f5efe3] to-transparent">
+        <button onClick={handleSkip} className="text-sm sm:text-base text-gray-600 hover:text-gray-800 transition-colors bg-transparent border-none outline-none">
           건너뛰기
         </button>
       </div>
@@ -472,15 +439,15 @@ export default function OnboardingPage() {
           width: 100%;
           height: 100%;
           overflow-x: hidden;
-          background: var(--color-main-bg);
+          background: #fef9f1;
         }
         .bubble-left {
           position: relative;
           display: inline-block;
-          background: #000;
-          color: white;
-          padding: 10px 14px;
-          border-radius: 37px;
+          background: white;
+          color: #374151;
+          padding: 12px 16px;
+          border-radius: 20px;
           font-size: 14px;
           line-height: 1.5;
           word-break: keep-all;
@@ -488,54 +455,59 @@ export default function OnboardingPage() {
           margin-left: 12px;
           margin-bottom: 10px;
           white-space: pre-line;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         }
         .bubble-left::after {
           content: '';
           position: absolute;
           border-style: solid;
           border-width: 6px 13px 6px 0;
-          border-color: transparent #000;
+          border-color: transparent white;
           left: -9px;
           top: 50%;
           transform: translateY(-50%);
+          filter: drop-shadow(-2px 0px 2px rgba(0, 0, 0, 0.05));
         }
         .bubble-green-text {
-          color: #4FA958;
+          color: #10b981;
+          font-weight: 500;
           margin-top: 6px;
         }
         .bubble-right {
           position: relative;
           display: inline-block;
-          background: #7F7F7F;
-          color: white;
-          padding: 10px 14px;
-          border-radius: 37px;
+          background: #f3f4f6;
+          color: #374151;
+          padding: 12px 16px;
+          border-radius: 20px;
           font-size: 14px;
           line-height: 1.5;
           word-break: keep-all;
           max-width: 70%;
           margin-right: 12px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
         }
         .bubble-right::after {
           content: '';
           position: absolute;
           border-style: solid;
           border-width: 6px 0 6px 13px;
-          border-color: transparent #7F7F7F;
+          border-color: transparent #f3f4f6;
           right: -9px;
           top: 50%;
           transform: translateY(-50%);
+          filter: drop-shadow(2px 0px 2px rgba(0, 0, 0, 0.05));
         }
         .custom-input {
-          color: #fff !important;
-          caret-color: #fff !important;
+          color: #374151 !important;
+          caret-color: #59B464 !important;
           font-size: 14px;
-          padding: 10px 16px;
-          border-radius: 37px;
+          padding: 12px 16px;
+          border-radius: 20px;
           line-height: 1.4;
         }
         .custom-input::placeholder {
-          color: rgba(255, 255, 255, 0.5);
+          color: #9ca3af;
         }
       `}</style>
     </div>
