@@ -53,11 +53,20 @@ export default async function handler(req, res) {
       originalUrl: req.url,
       targetUrl,
       pathRemoved: 'YES',
-      headers: {
+      incomingHeaders: {
         'content-type': req.headers['content-type'],
         'authorization': req.headers['authorization'] ? 'Bearer ***' : undefined,
+        'host': req.headers['host'],
+        'origin': req.headers['origin'],
+        'referer': req.headers['referer'],
       },
-      body: req.body
+      outgoingHeaders: {
+        'Content-Type': req.headers['content-type'] || 'application/json',
+        'Authorization': req.headers['authorization'] ? 'Bearer ***' : undefined,
+      },
+      body: req.body,
+      bodyType: typeof req.body,
+      bodyKeys: req.body ? Object.keys(req.body) : null
     });
 
     // 🔍 채팅 요청 상세 로깅
@@ -69,13 +78,24 @@ export default async function handler(req, res) {
       });
     }
 
+    // 실제 전송될 헤더 구성
+    const requestHeaders = {
+      'Content-Type': req.headers['content-type'] || 'application/json',
+      'Authorization': req.headers['authorization'],
+    };
+
+    console.log('🔧 [AXIOS CONFIG]', {
+      method: req.method,
+      url: targetUrl,
+      headers: requestHeaders,
+      dataPresent: !!req.body,
+      dataType: typeof req.body,
+    });
+
     const response = await axios({
       method: req.method,
       url: targetUrl,
-      headers: {
-        'Content-Type': req.headers['content-type'] || 'application/json',
-        'Authorization': req.headers['authorization'],
-      },
+      headers: requestHeaders,
       data: req.body,
       httpsAgent, // ⚠️ SSL 검증 우회
       validateStatus: () => true, // 모든 상태 코드 허용
@@ -109,14 +129,22 @@ export default async function handler(req, res) {
       console.error('🚨 403 FORBIDDEN DETECTED:', {
         originalUrl: req.url,
         targetUrl,
-        requestHeaders: {
-          authorization: req.headers['authorization'] ? 'Bearer ' + req.headers['authorization'].substring(7, 20) + '...' : 'MISSING',
-          contentType: req.headers['content-type']
+        sentHeaders: {
+          'Content-Type': req.headers['content-type'] || 'application/json',
+          'Authorization': req.headers['authorization'] ? 'Bearer ' + req.headers['authorization'].substring(7, 20) + '...' : 'MISSING',
         },
         requestBody: req.body,
+        requestBodyString: JSON.stringify(req.body),
         responseStatus: response.status,
+        responseStatusText: response.statusText,
         responseData: response.data,
-        responseHeaders: response.headers
+        responseDataString: JSON.stringify(response.data),
+        responseHeaders: response.headers,
+        nginxHeaders: {
+          server: response.headers['server'],
+          'x-content-type-options': response.headers['x-content-type-options'],
+          'strict-transport-security': response.headers['strict-transport-security'],
+        }
       });
     }
 
