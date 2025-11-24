@@ -78,7 +78,11 @@ const RETRY_DELAY_BASE = 1000; // 1초
 /**
  * Exponential backoff delay 계산
  */
-const getRetryDelay = (retryCount: number): number => {
+const getRetryDelay = (retryCount: number, status?: number): number => {
+  // 403 Rate Limit 에러는 더 긴 대기 (nginx rate limit 초당 30개 대응)
+  if (status === 403) {
+    return 2000 * Math.pow(2, retryCount); // 2s, 4s, 8s (더 느리게 재시도)
+  }
   return RETRY_DELAY_BASE * Math.pow(2, retryCount); // 1s, 2s, 4s
 };
 
@@ -98,6 +102,11 @@ const isRetryableError = (error: AxiosError): boolean => {
 
   // 408 Request Timeout, 429 Too Many Requests - 재시도 가능
   if (error.response.status === 408 || error.response.status === 429) {
+    return true;
+  }
+
+  // 403 Rate Limit - 더 긴 대기 후 재시도 (nginx rate limit 대응)
+  if (error.response.status === 403) {
     return true;
   }
 
@@ -222,8 +231,8 @@ axiosInstance.interceptors.response.use(
       const retryCount = parseInt(config.headers?.['X-Retry-Count'] as string || '0', 10);
 
       if (retryCount < MAX_RETRIES) {
-        const delay = getRetryDelay(retryCount);
-        console.log(`🔄 Retry attempt ${retryCount + 1}/${MAX_RETRIES} after ${delay}ms...`);
+        const delay = getRetryDelay(retryCount, error.response?.status);
+        console.log(`🔄 Retry attempt ${retryCount + 1}/${MAX_RETRIES} after ${delay}ms (status: ${error.response?.status})...`);
 
         // 다음 재시도 카운트 설정
         config.headers['X-Retry-Count'] = String(retryCount + 1);

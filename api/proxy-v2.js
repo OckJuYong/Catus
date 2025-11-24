@@ -73,8 +73,8 @@ export default async function handler(req, res) {
       method: req.method,
       url: targetUrl,
       headers: {
-        'content-type': req.headers['content-type'] || 'application/json',
-        'authorization': req.headers['authorization'],
+        'Content-Type': req.headers['content-type'] || 'application/json',
+        'Authorization': req.headers['authorization'],
       },
       data: req.body,
       httpsAgent, // ⚠️ SSL 검증 우회
