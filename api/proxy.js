@@ -77,6 +77,16 @@ export default async function handler(req, res) {
       data: response.data
     });
 
+    // 🔍 채팅 엔드포인트 특별 로깅
+    if (req.url.includes('/chat/message')) {
+      console.log('💬 [CHAT ENDPOINT]', {
+        backendStatus: response.status,
+        backendData: response.data,
+        willSendToFrontend: response.status,
+        authorization: req.headers['authorization'] ? 'Present' : 'Missing'
+      });
+    }
+
     // 🔍 403 에러 특별 로깅
     if (response.status === 403) {
       console.error('🚨 403 FORBIDDEN DETECTED:', {
