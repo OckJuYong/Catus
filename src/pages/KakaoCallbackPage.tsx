@@ -60,7 +60,7 @@ export default function KakaoCallbackPage() {
               body: JSON.stringify({
                 nickname: '달이집사',
                 password: 'kakao_oauth_user',
-                diaryGenerationTime: '21:00'
+                diaryTime: '21:00'  // 백엔드 필드명에 맞춤
               })
             });
             console.log('✅ diaryGenerationTime set to 21:00');
