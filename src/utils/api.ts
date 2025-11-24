@@ -153,7 +153,71 @@ axiosInstance.interceptors.response.use(
   async (error: AxiosError) => {
     const config = error.config;
 
-    // Retry 로직 실행
+    // 네트워크 에러 (서버 응답 없음) - 로그아웃하지 않음
+    if (!error.response) {
+      const message = error.message || '네트워크 연결을 확인해주세요.';
+      return Promise.reject(new ApiError(message, 0));
+    }
+
+    // 401 Unauthorized - 토큰 갱신 시도 (리액티브 갱신)
+    if (error.response.status === 401 && config) {
+      // 무한 루프 방지: 이미 재시도한 요청인지 확인
+      if (config.headers?.['X-Token-Refreshed']) {
+        console.error('❌ Token refresh failed, logging out...');
+        removeToken();
+        localStorage.removeItem('catus_refresh_token');
+        localStorage.removeItem('catus_user');
+
+        // 공개 페이지가 아니면 로그인 페이지로 리다이렉트
+        const publicPaths = ['/', '/auth/kakao/callback', '/privacy-policy'];
+        const currentPath = window.location.pathname;
+        if (!publicPaths.includes(currentPath)) {
+          window.location.href = '/';
+        }
+
+        return Promise.reject(new ApiError('인증이 만료되었습니다. 다시 로그인해주세요.', 401));
+      }
+
+      // 리프레시 토큰으로 액세스 토큰 갱신 시도
+      console.log('🔄 401 error detected, attempting token refresh...');
+
+      if (tokenRefreshCallback) {
+        try {
+          const newToken = await tokenRefreshCallback();
+
+          if (newToken) {
+            console.log('✅ Token refreshed, retrying original request...');
+
+            // 새 토큰으로 헤더 업데이트
+            config.headers.Authorization = `Bearer ${newToken}`;
+
+            // 재시도 플래그 설정 (무한 루프 방지)
+            config.headers['X-Token-Refreshed'] = 'true';
+
+            // 원래 요청 재시도
+            return axiosInstance(config);
+          }
+        } catch (refreshError) {
+          console.error('❌ Token refresh failed:', refreshError);
+        }
+      }
+
+      // 토큰 갱신 실패 시 로그아웃
+      console.error('❌ No token refresh callback or refresh failed, logging out...');
+      removeToken();
+      localStorage.removeItem('catus_refresh_token');
+      localStorage.removeItem('catus_user');
+
+      const publicPaths = ['/', '/auth/kakao/callback', '/privacy-policy'];
+      const currentPath = window.location.pathname;
+      if (!publicPaths.includes(currentPath)) {
+        window.location.href = '/';
+      }
+
+      return Promise.reject(new ApiError('인증이 만료되었습니다. 다시 로그인해주세요.', 401));
+    }
+
+    // Retry 로직 실행 (5xx 에러, 타임아웃 등)
     if (config && isRetryableError(error)) {
       const retryCount = parseInt(config.headers?.['X-Retry-Count'] as string || '0', 10);
 
@@ -171,27 +235,6 @@ axiosInstance.interceptors.response.use(
         return axiosInstance(config);
       } else {
         console.error(`❌ Max retries (${MAX_RETRIES}) reached. Giving up.`);
-      }
-    }
-
-    // 네트워크 에러 (서버 응답 없음) - 로그아웃하지 않음
-    if (!error.response) {
-      const message = error.message || '네트워크 연결을 확인해주세요.';
-      return Promise.reject(new ApiError(message, 0));
-    }
-
-    // 401 Unauthorized - 실제 인증 실패만 처리 (토큰 만료, 잘못된 토큰 등)
-    if (error.response.status === 401) {
-      // 현재 경로가 공개 페이지가 아닌 경우에만 로그아웃
-      const publicPaths = ['/', '/auth/kakao/callback', '/privacy-policy'];
-      const currentPath = window.location.pathname;
-
-      if (!publicPaths.includes(currentPath)) {
-        removeToken();
-        localStorage.removeItem('catus_refresh_token');
-        localStorage.removeItem('catus_user');
-        window.location.href = '/';
-        return Promise.reject(new ApiError('인증이 만료되었습니다. 다시 로그인해주세요.', 401));
       }
     }
 
