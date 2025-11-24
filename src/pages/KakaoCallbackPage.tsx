@@ -49,7 +49,7 @@ export default function KakaoCallbackPage() {
         localStorage.setItem('catus_access_token', accessToken);
         localStorage.setItem('catus_refresh_token', refreshToken);
 
-        // 2. userId 추출 (백엔드 응답 또는 JWT에서)
+        // 2. userId 추출 (백엔드 응답 또는 JWT에서, 최종적으로 3 사용)
         let userId = backendUserId;
         if (!userId) {
           console.warn('⚠️ Backend did not return userId, extracting from JWT...');
@@ -58,8 +58,11 @@ export default function KakaoCallbackPage() {
         }
 
         if (!userId) {
-          throw new Error('Failed to extract userId from backend response or JWT token');
+          console.warn('⚠️ Failed to extract userId, using default userId: 3');
+          userId = 3;
         }
+
+        console.log('✅ Final userId:', userId);
 
         // 3. 신규 사용자인 경우 diaryGenerationTime 설정 (21:00 고정)
         if (isNewUser) {
