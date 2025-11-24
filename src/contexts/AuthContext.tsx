@@ -95,21 +95,25 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
 
     try {
-      const response = await axios.post<{ accessToken: string; user: User }>(
+      // 백엔드 응답: { accessToken, refreshToken }
+      const response = await axios.post<{ accessToken: string; refreshToken: string }>(
         `${import.meta.env.VITE_API_BASE_URL}/auth/refresh`,
         { refreshToken }
       );
 
-      const { accessToken, user: userData } = response.data;
+      const { accessToken, refreshToken: newRefreshToken } = response.data;
 
-      // 새 액세스 토큰 저장
+      // 새 액세스 토큰 및 리프레시 토큰 저장
       setToken(accessToken);
-      setUser(userData);
-      localStorage.setItem('catus_user', JSON.stringify(userData));
+      setRefreshToken(newRefreshToken);
 
+      // 사용자 정보는 localStorage에서 유지 (백엔드 응답에 user 정보 없음)
+      // user 상태는 그대로 유지됨
+
+      console.log('✅ Token refreshed successfully');
       return accessToken;
     } catch (error) {
-      console.error('Token refresh failed:', error);
+      console.error('❌ Token refresh failed:', error);
       logout();
       return null;
     }
