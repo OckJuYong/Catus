@@ -45,11 +45,13 @@
       ]
     }
   ],
-  "rewrites": [
+  "routes": [
     {
-      "source": "/api/proxy/:path*",
-      "destination": "/api/proxy-v2"
-    },
+      "src": "/api/proxy/(.*)",
+      "dest": "/api/proxy-v2.js"
+    }
+  ],
+  "rewrites": [
     {
       "source": "/(.*)",
       "destination": "/index.html"
