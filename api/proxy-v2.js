@@ -6,12 +6,27 @@
 
 import https from 'https';
 import axios from 'axios';
+import fs from 'fs';
+import path from 'path';
 
 const BACKEND_URL = 'https://34.158.193.95/api';
 
-// SSL 검증 우회 에이전트 (⚠️ 개발용만!)
+// 1. 자체 서명 인증서 파일을 읽어옵니다.
+//    'api/' 폴더에 있는 인증서 파일명을 정확히 기재해야 합니다.
+const certPath = path.resolve(process.cwd(), 'api', 'my-self-signed-cert.pem');
+let ca;
+try {
+  ca = fs.readFileSync(certPath);
+} catch (error) {
+  console.error('인증서 파일을 읽는 데 실패했습니다:', error);
+  // 인증서가 없으면 HTTPS 요청이 실패하도록 에이전트를 설정하지 않거나
+  // 혹은 다른 방식으로 오류를 처리할 수 있습니다.
+}
+
+// 2. 읽어온 인증서만 신뢰하는 httpsAgent를 생성합니다.
 const httpsAgent = new https.Agent({
-  rejectUnauthorized: false
+  ca: ca,
+  // rejectUnauthorized는 기본값이 true이므로, ca가 제공되면 해당 ca를 신뢰하게 됩니다.
 });
 
 export default async function handler(req, res) {

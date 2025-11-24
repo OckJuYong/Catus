@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useKakaoLogin } from '../hooks/useApi';
+import { getUserIdFromToken } from '../utils/jwt';
 
 export default function KakaoCallbackPage() {
   const [searchParams] = useSearchParams();
@@ -42,13 +43,25 @@ export default function KakaoCallbackPage() {
 
         console.log('✅ Login response:', response);
 
-        const { accessToken, refreshToken, isNewUser, userId } = response;
+        const { accessToken, refreshToken, isNewUser, userId: backendUserId } = response;
 
         // 1. JWT 토큰 저장
         localStorage.setItem('catus_access_token', accessToken);
         localStorage.setItem('catus_refresh_token', refreshToken);
 
-        // 2. 신규 사용자인 경우 diaryGenerationTime 설정 (21:00 고정)
+        // 2. userId 추출 (백엔드 응답 또는 JWT에서)
+        let userId = backendUserId;
+        if (!userId) {
+          console.warn('⚠️ Backend did not return userId, extracting from JWT...');
+          userId = getUserIdFromToken(accessToken);
+          console.log('🔍 Extracted userId from JWT:', userId);
+        }
+
+        if (!userId) {
+          throw new Error('Failed to extract userId from backend response or JWT token');
+        }
+
+        // 3. 신규 사용자인 경우 diaryGenerationTime 설정 (21:00 고정)
         if (isNewUser) {
           try {
             await fetch(`${import.meta.env.VITE_API_BASE_URL}/auth/signup`, {
@@ -70,8 +83,7 @@ export default function KakaoCallbackPage() {
           }
         }
 
-        // 3. 사용자 정보 저장 (AuthContext에 user 설정)
-        // 백엔드가 user 객체 대신 userId만 반환하므로 임시 User 객체 생성
+        // 4. 사용자 정보 저장 (AuthContext에 user 설정)
         const tempUser = {
           id: userId,
           nickname: '사용자', // 온보딩에서 설정
@@ -80,7 +92,7 @@ export default function KakaoCallbackPage() {
         login(tempUser as any);
         console.log('✅ User logged in:', tempUser);
 
-        // 4. 네비게이션 (user 설정 후 이동)
+        // 5. 네비게이션 (user 설정 후 이동)
         if (isNewUser) {
           console.log('📍 Navigating to /onboarding');
           navigate('/onboarding');

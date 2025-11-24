@@ -53,7 +53,9 @@
       "mcp__playwright__browser_handle_dialog",
       "Bash(git revert:*)",
       "Bash(printf:*)",
-      "Bash(tee:*)"
+      "Bash(tee:*)",
+      "Bash(ssh:*)",
+      "Bash(/tmp/catus.conf)"
     ],
     "deny": [],
     "ask": []
