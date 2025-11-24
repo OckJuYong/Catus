@@ -26,10 +26,10 @@ export default function Big5StatsPage() {
     retry: false,
   });
 
-  // 변화 이력 조회 (최근 30일)
+  // 변화 이력 조회 (전체 데이터 가져오기, 프론트에서 필터링)
   const { data: historyData } = useQuery({
-    queryKey: ['big5', 'history', 'month'],
-    queryFn: () => big5Api.getHistory('month'),
+    queryKey: ['big5', 'history'],
+    queryFn: () => big5Api.getHistory(), // period 파라미터 제거 → 전체 데이터
     enabled: !!currentData,
   });
 

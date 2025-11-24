@@ -50,7 +50,9 @@
       "Bash(node test-backend-apis.js:*)",
       "Bash(move:*)",
       "Bash(node test-backend-apis.cjs:*)",
-      "mcp__playwright__browser_handle_dialog"
+      "mcp__playwright__browser_handle_dialog",
+      "Bash(git revert:*)",
+      "Bash(printf:*)"
     ],
     "deny": [],
     "ask": []

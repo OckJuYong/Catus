@@ -59,7 +59,7 @@ export const queryKeys = {
   },
   big5: {
     current: () => ['big5', 'current'] as const,
-    history: (period?: string) => ['big5', 'history', period] as const,
+    history: () => ['big5', 'history'] as const, // period 제거 - 전체 데이터 가져오기
   },
   settings: {
     all: () => ['settings'] as const,
