@@ -48,10 +48,11 @@ export default async function handler(req, res) {
 
     const targetUrl = `${BACKEND_URL}${path}`;
 
-    console.log('📤 [REQUEST]', {
+    console.log('📤 [REQUEST] v2', {
       method: req.method,
       originalUrl: req.url,
       targetUrl,
+      pathRemoved: 'YES',
       headers: {
         'content-type': req.headers['content-type'],
         'authorization': req.headers['authorization'] ? 'Bearer ***' : undefined,
