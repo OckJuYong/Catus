@@ -13,6 +13,11 @@ export default function ChatAnalysisPage() {
   const [endDate, setEndDate] = useState('');
   const [analysisResult, setAnalysisResult] = useState<ChatAnalysisResponse | null>(null);
   const [showCalendar, setShowCalendar] = useState<'start' | 'end' | null>(null);
+  const [showYearPicker, setShowYearPicker] = useState(false);
+  const [calendarDate, setCalendarDate] = useState(new Date());
+
+  const currentYear = new Date().getFullYear();
+  const availableYears = Array.from({ length: currentYear - 2025 + 1 }, (_, i) => 2025 + i);
 
   const formatDate = (date: Date): string => {
     const year = date.getFullYear();
@@ -315,36 +320,73 @@ export default function ChatAnalysisPage() {
 
               {/* 캘린더 */}
               <div className="p-[12px]">
-                <Calendar
-                  value={showCalendar === 'start' && startDate ? new Date(startDate) : showCalendar === 'end' && endDate ? new Date(endDate) : new Date()}
-                  onChange={(value) => value instanceof Date && handleDateSelect(value)}
-                  locale="en-US"
-                  formatDay={(_, date) => date.getDate().toString()}
-                  formatShortWeekday={(_, date) => ['일', '월', '화', '수', '목', '금', '토'][date.getDay()]}
-                  formatMonthYear={(_, date) => `${date.getFullYear()}년 ${date.getMonth() + 1}월`}
-                  formatYear={(_, date) => `${date.getFullYear()}년`}
-                  formatMonth={(_, date) => `${date.getMonth() + 1}월`}
-                  next2Label={null}
-                  prev2Label={null}
-                  minDate={new Date(2025, 0, 1)}
-                  maxDate={new Date()}
-                  minDetail="year"
-                  tileClassName={({ date, view }) => {
-                    const classes: string[] = [];
-                    if (view === 'month') {
-                      const day = date.getDay();
-                      if (day === 0) classes.push('sunday');
-                      if (day === 6) classes.push('saturday');
-                    }
-                    if (view === 'year') {
-                      const now = new Date();
-                      if (date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()) {
-                        classes.push('current-month');
+                {showYearPicker ? (
+                  /* 년도 선택 뷰 */
+                  <div>
+                    <div className="flex items-center justify-center mb-[12px]">
+                      <span className="text-[16px] font-[600]" style={{ color: 'var(--color-text-primary)' }}>
+                        년도 선택
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-[8px] max-h-[280px] overflow-y-auto">
+                      {availableYears.map((year) => (
+                        <button
+                          key={year}
+                          onClick={() => {
+                            setCalendarDate(new Date(year, calendarDate.getMonth(), 1));
+                            setShowYearPicker(false);
+                          }}
+                          className="py-[14px] rounded-[12px] text-[14px] font-[500] border-0 transition-all"
+                          style={{
+                            backgroundColor: year === calendarDate.getFullYear() ? '#5E7057' : 'var(--color-main-bg)',
+                            color: year === calendarDate.getFullYear() ? 'white' : year === currentYear ? '#5E7057' : 'var(--color-text-primary)',
+                            fontWeight: year === currentYear ? 700 : 500,
+                          }}
+                        >
+                          {year}년
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  /* 캘린더 뷰 */
+                  <Calendar
+                    value={showCalendar === 'start' && startDate ? new Date(startDate) : showCalendar === 'end' && endDate ? new Date(endDate) : calendarDate}
+                    activeStartDate={calendarDate}
+                    onActiveStartDateChange={({ activeStartDate }) => activeStartDate && setCalendarDate(activeStartDate)}
+                    onChange={(value) => value instanceof Date && handleDateSelect(value)}
+                    locale="en-US"
+                    formatDay={(_, date) => date.getDate().toString()}
+                    formatShortWeekday={(_, date) => ['일', '월', '화', '수', '목', '금', '토'][date.getDay()]}
+                    formatMonthYear={(_, date) => `${date.getFullYear()}년 ${date.getMonth() + 1}월`}
+                    formatYear={(_, date) => `${date.getFullYear()}년`}
+                    formatMonth={(_, date) => `${date.getMonth() + 1}월`}
+                    navigationLabel={({ date }) => (
+                      <span onClick={(e) => { e.stopPropagation(); setShowYearPicker(true); }}>
+                        {date.getFullYear()}년 {date.getMonth() + 1}월
+                      </span>
+                    )}
+                    next2Label={null}
+                    prev2Label={null}
+                    minDate={new Date(2025, 0, 1)}
+                    maxDate={new Date()}
+                    tileClassName={({ date, view }) => {
+                      const classes: string[] = [];
+                      if (view === 'month') {
+                        const day = date.getDay();
+                        if (day === 0) classes.push('sunday');
+                        if (day === 6) classes.push('saturday');
                       }
-                    }
-                    return classes.length > 0 ? classes.join(' ') : null;
-                  }}
-                />
+                      if (view === 'year') {
+                        const now = new Date();
+                        if (date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()) {
+                          classes.push('current-month');
+                        }
+                      }
+                      return classes.length > 0 ? classes.join(' ') : null;
+                    }}
+                  />
+                )}
 
                 {/* 하단 버튼 */}
                 <div className="flex gap-[8px] mt-[12px]">
