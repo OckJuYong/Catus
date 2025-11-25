@@ -82,6 +82,7 @@ export default async function handler(req, res) {
     const requestHeaders = {
       'Content-Type': req.headers['content-type'] || 'application/json',
       'Authorization': req.headers['authorization'],
+      'Origin': req.headers['origin'],
     };
 
     console.log('🔧 [AXIOS CONFIG]', {
