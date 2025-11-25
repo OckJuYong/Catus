@@ -166,7 +166,7 @@ export default function Big5StatsPage() {
   }
 
   // 에러 또는 데이터 없음 - 테스트 안내
-  if (true) { // 임시: UI 확인용
+  if (error || !currentData) {
     return (
       <div
         className="h-[100dvh] flex flex-col overflow-hidden"
