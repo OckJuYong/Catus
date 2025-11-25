@@ -9,6 +9,7 @@ import { useMutation } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { big5Api } from '../utils/api';
 import { useToast } from '../contexts/ToastContext';
+import { useDarkMode } from '../contexts/DarkModeContext';
 import { ROUTES } from '../constants/routes';
 import { BIG5_QUESTIONS, SCORE_OPTIONS } from '../constants/big5Questions';
 import footprintIcon from '../assets/images/footprint.svg';
@@ -16,6 +17,7 @@ import footprintIcon from '../assets/images/footprint.svg';
 export default function Big5TestPage() {
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { isDarkMode } = useDarkMode();
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<Array<{ questionId: number; score: number }>>([]);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
@@ -138,9 +140,12 @@ export default function Big5TestPage() {
               className={`w-full py-[1.5vh] px-[14px] rounded-[10px] border-0 cursor-pointer transition-all text-[clamp(12px,3vw,15px)] ${
                 selectedAnswer === option.value
                   ? 'bg-[rgba(89,180,100,0.15)] text-[#59B464] font-[500]'
-                  : 'bg-[white] font-[400]'
+                  : 'font-[400]'
               }`}
-              style={{ color: selectedAnswer === option.value ? '#59B464' : 'var(--color-text-primary)' }}
+              style={{
+                color: selectedAnswer === option.value ? '#59B464' : 'var(--color-text-primary)',
+                backgroundColor: selectedAnswer === option.value ? 'rgba(89,180,100,0.15)' : 'var(--color-bg-card)'
+              }}
             >
               {option.label}
             </button>

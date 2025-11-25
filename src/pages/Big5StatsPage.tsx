@@ -6,6 +6,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { big5Api } from '../utils/api';
+import { useDarkMode } from '../contexts/DarkModeContext';
 import { ROUTES } from '../constants/routes';
 
 const BIG5_TRAITS = {
@@ -17,7 +18,7 @@ const BIG5_TRAITS = {
 } as const;
 
 // 레이더 차트 컴포넌트
-const RadarChart = ({ scores }: { scores: Record<string, number> }) => {
+const RadarChart = ({ scores, isDarkMode }: { scores: Record<string, number>; isDarkMode: boolean }) => {
   const size = 240;
   const center = size / 2;
   const radius = 80;
@@ -48,7 +49,7 @@ const RadarChart = ({ scores }: { scores: Record<string, number> }) => {
         key={level}
         points={points}
         fill="none"
-        stroke="#E5E5E5"
+        stroke={isDarkMode ? '#4a4a4a' : '#E5E5E5'}
         strokeWidth="1"
       />
     );
@@ -64,7 +65,7 @@ const RadarChart = ({ scores }: { scores: Record<string, number> }) => {
         y1={center}
         x2={point.x}
         y2={point.y}
-        stroke="#E5E5E5"
+        stroke={isDarkMode ? '#4a4a4a' : '#E5E5E5'}
         strokeWidth="1"
       />
     );
@@ -126,7 +127,7 @@ const RadarChart = ({ scores }: { scores: Record<string, number> }) => {
           dominantBaseline="middle"
           fontSize="12"
           fontWeight="600"
-          fill="#333"
+          fill={isDarkMode ? '#e0e0e0' : '#333'}
         >
           {labels[i]}
         </text>
@@ -137,6 +138,7 @@ const RadarChart = ({ scores }: { scores: Record<string, number> }) => {
 
 export default function Big5StatsPage() {
   const navigate = useNavigate();
+  const { isDarkMode } = useDarkMode();
 
   // 현재 BIG5 점수 조회
   const { data: currentData, isLoading, error } = useQuery({
@@ -254,7 +256,7 @@ export default function Big5StatsPage() {
           style={{ backgroundColor: 'var(--color-bg-card)' }}
         >
           <div className="flex justify-center items-center">
-            <RadarChart scores={scores} />
+            <RadarChart scores={scores} isDarkMode={isDarkMode} />
           </div>
         </div>
 
@@ -292,7 +294,7 @@ export default function Big5StatsPage() {
                   </p>
                   <div
                     className="w-full rounded-full h-[8px]"
-                    style={{ backgroundColor: '#E8E8E8' }}
+                    style={{ backgroundColor: isDarkMode ? '#3a3a3a' : '#E8E8E8' }}
                   >
                     <div
                       className="h-[8px] rounded-full transition-all duration-300"
