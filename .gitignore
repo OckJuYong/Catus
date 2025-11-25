@@ -12,10 +12,10 @@ dist
 dist-ssr
 *.local
 
-# Environment variables
+# Environment variables (SECURITY - never commit)
 .env
-.env.local
-.env.development
+.env.*
+!.env.production.template
 
 # Editor directories and files
 .vscode/*
@@ -39,7 +39,7 @@ backup_before_feature_addition
 !README.md
 
 # Test artifacts
-.playwright-mcp
+.playwright-mcp/
 
 # Temporary files
 nul
@@ -48,3 +48,12 @@ nul
 새 폴더/
 제미나이*.md
 사업계획서*.md
+
+# Backups
+backups/
+
+# Claude local settings
+.claude/
+
+# Large analysis files
+COMPREHENSIVE_*.md
