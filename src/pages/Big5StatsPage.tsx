@@ -73,7 +73,7 @@ const RadarChart = ({ scores }: { scores: Record<string, number> }) => {
   // 데이터 다각형 (점수를 100% 기준 퍼센트로 변환)
   const dataPoints = traits.map((trait, i) => {
     const score = scores[trait] || 0;
-    const percentage = (score / 5) * 100; // 5점 만점을 100%로
+    const percentage = Math.min(100, (score / 5) * 100); // 5점 만점을 100%로, 최대 100%
     return getPoint(i, percentage);
   });
   const dataPolygon = dataPoints.map(p => `${p.x},${p.y}`).join(' ');
@@ -266,7 +266,7 @@ export default function Big5StatsPage() {
           <div className="flex flex-col gap-[20px]">
             {Object.entries(BIG5_TRAITS).map(([key, trait]) => {
               const score = scores[key as keyof typeof scores] || 0;
-              const percentage = Math.round((score / 5) * 100);
+              const percentage = Math.min(100, Math.round((score / 5) * 100));
 
               return (
                 <div key={key}>
