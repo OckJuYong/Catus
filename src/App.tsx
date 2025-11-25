@@ -36,8 +36,8 @@ function App() {
                 <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
 
                 {/* Protected Routes */}
-                <Route path="/onboarding" element={<PrivateRoute><OnboardingPage /></PrivateRoute>} />
-                <Route path="/onboarding/flow" element={<PrivateRoute><Onboarding /></PrivateRoute>} />
+                <Route path="/onboarding" element={<PrivateRoute><Onboarding /></PrivateRoute>} />
+                <Route path="/onboarding/flow" element={<PrivateRoute><OnboardingPage /></PrivateRoute>} />
                 <Route path="/home" element={<PrivateRoute><HomePage /></PrivateRoute>} />
                 <Route path="/chat" element={<PrivateRoute><ChatPage /></PrivateRoute>} />
                 <Route path="/chat/analysis" element={<PrivateRoute><ChatAnalysisPage /></PrivateRoute>} />
