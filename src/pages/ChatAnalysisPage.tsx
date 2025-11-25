@@ -13,11 +13,14 @@ export default function ChatAnalysisPage() {
   const [endDate, setEndDate] = useState('');
   const [analysisResult, setAnalysisResult] = useState<ChatAnalysisResponse | null>(null);
   const [showCalendar, setShowCalendar] = useState<'start' | 'end' | null>(null);
-  const [showYearPicker, setShowYearPicker] = useState(false);
+  const [pickerMode, setPickerMode] = useState<'calendar' | 'year' | 'month'>('calendar');
   const [calendarDate, setCalendarDate] = useState(new Date());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().getMonth();
   const availableYears = Array.from({ length: currentYear - 2025 + 1 }, (_, i) => 2025 + i);
+  const months = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
 
   const formatDate = (date: Date): string => {
     const year = date.getFullYear();
@@ -320,7 +323,7 @@ export default function ChatAnalysisPage() {
 
               {/* 캘린더 */}
               <div className="p-[12px]">
-                {showYearPicker ? (
+                {pickerMode === 'year' ? (
                   /* 년도 선택 뷰 */
                   <div>
                     <div className="flex items-center justify-center mb-[12px]">
@@ -333,8 +336,8 @@ export default function ChatAnalysisPage() {
                         <button
                           key={year}
                           onClick={() => {
-                            setCalendarDate(new Date(year, calendarDate.getMonth(), 1));
-                            setShowYearPicker(false);
+                            setSelectedYear(year);
+                            setPickerMode('month');
                           }}
                           className="py-[14px] rounded-[12px] text-[14px] font-[500] border-0 transition-all"
                           style={{
@@ -346,6 +349,47 @@ export default function ChatAnalysisPage() {
                           {year}년
                         </button>
                       ))}
+                    </div>
+                  </div>
+                ) : pickerMode === 'month' ? (
+                  /* 월 선택 뷰 */
+                  <div>
+                    <div className="flex items-center justify-center mb-[12px]">
+                      <button
+                        onClick={() => setPickerMode('year')}
+                        className="text-[16px] font-[600] bg-transparent border-0 flex items-center gap-[4px]"
+                        style={{ color: 'var(--color-text-primary)' }}
+                      >
+                        <span>‹</span>
+                        <span>{selectedYear}년</span>
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-3 gap-[8px]">
+                      {months.map((month, index) => {
+                        const isDisabled = selectedYear === currentYear && index > currentMonth;
+                        const isCurrentMonth = selectedYear === currentYear && index === currentMonth;
+                        const isSelected = selectedYear === calendarDate.getFullYear() && index === calendarDate.getMonth();
+                        return (
+                          <button
+                            key={month}
+                            onClick={() => {
+                              if (!isDisabled) {
+                                setCalendarDate(new Date(selectedYear, index, 1));
+                                setPickerMode('calendar');
+                              }
+                            }}
+                            disabled={isDisabled}
+                            className="py-[14px] rounded-[12px] text-[14px] font-[500] border-0 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                            style={{
+                              backgroundColor: isSelected ? '#5E7057' : 'var(--color-main-bg)',
+                              color: isSelected ? 'white' : isCurrentMonth ? '#5E7057' : 'var(--color-text-primary)',
+                              fontWeight: isCurrentMonth ? 700 : 500,
+                            }}
+                          >
+                            {month}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 ) : (
@@ -362,7 +406,7 @@ export default function ChatAnalysisPage() {
                     formatYear={(_, date) => `${date.getFullYear()}년`}
                     formatMonth={(_, date) => `${date.getMonth() + 1}월`}
                     navigationLabel={({ date }) => (
-                      <span onClick={(e) => { e.stopPropagation(); setShowYearPicker(true); }}>
+                      <span onClick={(e) => { e.stopPropagation(); setSelectedYear(date.getFullYear()); setPickerMode('year'); }}>
                         {date.getFullYear()}년 {date.getMonth() + 1}월
                       </span>
                     )}
