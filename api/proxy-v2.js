@@ -1,29 +1,18 @@
 /**
  * Vercel Serverless Function - Backend API Proxy
- * ⚠️ 임시 SSL 검증 우회용 - 개발/테스트 전용
- * TODO: 백엔드 SSL 인증서 설정 후 제거 필요
+ * HTTPS 연결 (자체 서명 인증서 허용)
  */
 
 import https from 'https';
 import axios from 'axios';
-import fs from 'fs';
-import path from 'path';
 
-// nginx 우회: Spring Boot 8080 직접 연결 (HTTP)
-const BACKEND_URL = 'http://34.158.193.95:8080/api';
+// HTTPS 연결 (443 포트)
+const BACKEND_URL = 'https://34.158.193.95/api';
 
-// HTTP 연결이므로 SSL 인증서 불필요 (주석 처리)
-// const certPath = path.resolve(process.cwd(), 'api', 'my-self-signed-cert.pem');
-// let ca;
-// try {
-//   ca = fs.readFileSync(certPath);
-// } catch (error) {
-//   console.error('인증서 파일을 읽는 데 실패했습니다:', error);
-// }
-
-// const httpsAgent = new https.Agent({
-//   ca: ca,
-// });
+// 자체 서명 인증서 허용을 위한 HTTPS Agent
+const httpsAgent = new https.Agent({
+  rejectUnauthorized: false, // 자체 서명 인증서 허용
+});
 
 export default async function handler(req, res) {
   // CORS 헤더 설정
@@ -108,7 +97,7 @@ export default async function handler(req, res) {
       url: targetUrl,
       headers: requestHeaders,
       data: req.body,
-      // httpsAgent 제거 (HTTP 연결)
+      httpsAgent, // HTTPS 자체 서명 인증서 허용
       validateStatus: () => true, // 모든 상태 코드 허용
       maxRedirects: 5,
       timeout: 30000,
