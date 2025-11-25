@@ -181,12 +181,15 @@ export default function Big5StatsPage() {
         >
           <button
             onClick={() => navigate(-1)}
-            className="text-[#5E7057] hover:opacity-70 text-[20px] bg-transparent border-0"
-            style={{ marginTop: '-5px' }}
+            className="hover:opacity-70 text-[20px] bg-transparent border-0"
+            style={{ marginTop: '-5px', color: isDarkMode ? '#FFFFFF' : '#5E7057' }}
           >
             ←
           </button>
-          <div className="text-[16px] font-[600] text-[#5E7057]">
+          <div
+            className="text-[16px] font-[600]"
+            style={{ color: isDarkMode ? '#FFFFFF' : '#5E7057' }}
+          >
             BIG5 성격 분석
           </div>
           <div className="w-[20px]" />
@@ -237,12 +240,15 @@ export default function Big5StatsPage() {
       >
         <button
           onClick={() => navigate(-1)}
-          className="text-[#5E7057] hover:opacity-70 text-[20px] bg-transparent border-0"
-          style={{ marginTop: '-5px' }}
+          className="hover:opacity-70 text-[20px] bg-transparent border-0"
+          style={{ marginTop: '-5px', color: isDarkMode ? '#FFFFFF' : '#5E7057' }}
         >
           ←
         </button>
-        <div className="text-[16px] font-[600] text-[#5E7057]">
+        <div
+          className="text-[16px] font-[600]"
+          style={{ color: isDarkMode ? '#FFFFFF' : '#5E7057' }}
+        >
           BIG5 성격 분석
         </div>
         <div className="w-[20px]" />

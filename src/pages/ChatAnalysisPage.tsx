@@ -6,11 +6,13 @@ import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import { chatApi } from '../utils/api';
 import { useToast } from '../contexts/ToastContext';
+import { useDarkMode } from '../contexts/DarkModeContext';
 import type { ChatAnalysisResponse } from '../types';
 
 export default function ChatAnalysisPage() {
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { isDarkMode } = useDarkMode();
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [analysisResult, setAnalysisResult] = useState<ChatAnalysisResponse | null>(null);
@@ -88,12 +90,15 @@ export default function ChatAnalysisPage() {
       >
         <button
           onClick={() => navigate(-1)}
-          className="text-[#5E7057] hover:opacity-70 text-[20px] bg-transparent border-0"
-          style={{ marginTop: '-5px' }}
+          className="hover:opacity-70 text-[20px] bg-transparent border-0"
+          style={{ marginTop: '-5px', color: isDarkMode ? '#FFFFFF' : '#5E7057' }}
         >
           ←
         </button>
-        <div className="text-[16px] font-[600] text-[#5E7057]">
+        <div
+          className="text-[16px] font-[600]"
+          style={{ color: isDarkMode ? '#FFFFFF' : '#5E7057' }}
+        >
           채팅 분석
         </div>
         <div className="w-[20px]" />
