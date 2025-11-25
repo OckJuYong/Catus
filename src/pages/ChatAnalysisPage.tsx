@@ -322,6 +322,8 @@ export default function ChatAnalysisPage() {
                   formatDay={(_, date) => date.getDate().toString()}
                   formatShortWeekday={(_, date) => ['일', '월', '화', '수', '목', '금', '토'][date.getDay()]}
                   formatMonthYear={(_, date) => `${date.getFullYear()}년 ${date.getMonth() + 1}월`}
+                  formatYear={(_, date) => `${date.getFullYear()}년`}
+                  formatMonth={(_, date) => `${date.getMonth() + 1}월`}
                   next2Label={null}
                   prev2Label={null}
                   maxDate={new Date()}
@@ -332,6 +334,35 @@ export default function ChatAnalysisPage() {
                     return null;
                   }}
                 />
+
+                {/* 하단 버튼 */}
+                <div className="flex gap-[8px] mt-[12px]">
+                  <button
+                    onClick={() => {
+                      if (showCalendar === 'start') setStartDate('');
+                      else if (showCalendar === 'end') setEndDate('');
+                      setShowCalendar(null);
+                    }}
+                    className="flex-1 py-[10px] rounded-[10px] text-[14px] font-[500] border"
+                    style={{
+                      backgroundColor: 'var(--color-main-bg)',
+                      borderColor: 'var(--color-border)',
+                      color: 'var(--color-text-secondary)',
+                    }}
+                  >
+                    삭제
+                  </button>
+                  <button
+                    onClick={() => handleDateSelect(new Date())}
+                    className="flex-1 py-[10px] rounded-[10px] text-[14px] font-[500] border-0"
+                    style={{
+                      backgroundColor: '#5E7057',
+                      color: 'white',
+                    }}
+                  >
+                    오늘
+                  </button>
+                </div>
               </div>
             </motion.div>
           </>
@@ -378,7 +409,15 @@ export default function ChatAnalysisPage() {
           font-weight: 600;
           font-size: 15px;
           color: var(--color-text-primary);
-          pointer-events: none;
+          background: var(--color-main-bg) !important;
+          border-radius: 10px;
+          padding: 0 12px;
+          cursor: pointer !important;
+          pointer-events: auto !important;
+        }
+
+        .react-calendar__navigation__label:hover {
+          background: rgba(94, 112, 87, 0.15) !important;
         }
 
         .react-calendar__month-view__weekdays {
@@ -468,6 +507,71 @@ export default function ChatAnalysisPage() {
 
         .react-calendar__tile--neighboringMonth {
           visibility: hidden !important;
+        }
+
+        /* 년도 선택 뷰 */
+        .react-calendar__year-view__months {
+          display: grid !important;
+          grid-template-columns: repeat(3, 1fr) !important;
+          gap: 8px;
+        }
+
+        .react-calendar__year-view__months__month {
+          padding: 16px 8px !important;
+          background: var(--color-main-bg);
+          border-radius: 12px;
+          font-size: 14px;
+          font-weight: 500;
+          color: var(--color-text-primary);
+        }
+
+        .react-calendar__year-view__months__month:hover {
+          background: rgba(94, 112, 87, 0.15);
+        }
+
+        .react-calendar__tile--hasActive {
+          background: #5E7057 !important;
+          color: white !important;
+        }
+
+        /* 10년 단위 뷰 */
+        .react-calendar__decade-view__years {
+          display: grid !important;
+          grid-template-columns: repeat(3, 1fr) !important;
+          gap: 8px;
+        }
+
+        .react-calendar__decade-view__years__year {
+          padding: 16px 8px !important;
+          background: var(--color-main-bg);
+          border-radius: 12px;
+          font-size: 14px;
+          font-weight: 500;
+          color: var(--color-text-primary);
+        }
+
+        .react-calendar__decade-view__years__year:hover {
+          background: rgba(94, 112, 87, 0.15);
+        }
+
+        /* 100년 단위 뷰 */
+        .react-calendar__century-view__decades {
+          display: grid !important;
+          grid-template-columns: repeat(3, 1fr) !important;
+          gap: 8px;
+        }
+
+        .react-calendar__century-view__decades__decade {
+          padding: 16px 8px !important;
+          background: var(--color-main-bg);
+          border-radius: 12px;
+          font-size: 13px;
+          font-weight: 500;
+          color: var(--color-text-primary);
+        }
+
+        .react-calendar__century-view__decades__decade:hover {
+          background: rgba(94, 112, 87, 0.15);
         }
       `}</style>
     </div>
