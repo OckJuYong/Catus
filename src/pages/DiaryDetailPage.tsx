@@ -23,25 +23,6 @@ export default function DiaryDetailPage() {
   const [editedContent, setEditedContent] = useState('');
   const [showBig5Sheet, setShowBig5Sheet] = useState(false);
 
-  // 임시 목 데이터 (디자인 확인용) - 나중에 삭제
-  const USE_MOCK = true;
-  const mockDiary: DiaryDetailResponse = {
-    id: 1,
-    date: '2025-11-26',
-    content: '오늘은 정말 뜻깊은 하루였다. 아침에 일어나서 따뜻한 커피 한 잔과 함께 하루를 시작했는데, 창밖으로 보이는 노을이 너무 예뻤다. 점심에는 오랜만에 친구를 만나서 맛있는 파스타를 먹었고, 서로의 근황에 대해 이야기를 나눴다. 저녁에는 집에서 좋아하는 영화를 보면서 힐링하는 시간을 가졌다. 작은 것들에 감사하는 하루였다.',
-    emotion: '행복' as Emotion,
-    imageUrl: 'https://picsum.photos/400/400',
-    big5Scores: {
-      openness: 75,
-      conscientiousness: 60,
-      extraversion: 80,
-      agreeableness: 70,
-      neuroticism: 30,
-    },
-    isPublic: true,
-    createdAt: '2025-11-26T20:00:00',
-  };
-
   // Fetch diary data (백엔드: GET /api/diary/{id})
   const { data: diaryData, isLoading, error } = useQuery({
     queryKey: ['diary', 'detail', diaryId],
@@ -49,11 +30,11 @@ export default function DiaryDetailPage() {
       if (!diaryId) throw new Error('일기 ID가 필요합니다.');
       return await diaryApi.getById(diaryId);
     },
-    enabled: !!diaryId && !isNaN(diaryId) && !USE_MOCK,
+    enabled: !!diaryId && !isNaN(diaryId),
     retry: 2,
   });
 
-  const diary: DiaryDetailResponse | undefined = USE_MOCK ? mockDiary : diaryData;
+  const diary: DiaryDetailResponse | undefined = diaryData;
 
   // 받은 메시지 조회 (백엔드: GET /api/message/received)
   const { data: messagesData } = useQuery({
@@ -183,7 +164,7 @@ export default function DiaryDetailPage() {
   };
 
   // Loading state
-  if (isLoading && !USE_MOCK) {
+  if (isLoading) {
     return (
       <div
         className="min-h-screen flex flex-col items-center justify-center"
@@ -199,7 +180,7 @@ export default function DiaryDetailPage() {
   }
 
   // Error state
-  if ((error || !diary) && !USE_MOCK) {
+  if (error || !diary) {
     return (
       <div
         className="min-h-screen flex flex-col items-center justify-center"
