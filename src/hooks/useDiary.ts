@@ -15,6 +15,7 @@ interface DiaryMap {
 interface UseDiaryListReturn {
   diaries: DiaryMap;
   loading: boolean;
+  isFetching: boolean;
   error: unknown | null;
   refetch: () => Promise<void>;
 }
@@ -25,7 +26,7 @@ interface UseDiaryListReturn {
 export const useDiaryList = (year: number, month: number): UseDiaryListReturn => {
   const queryClient = useQueryClient();
 
-  const { data: diaries = {}, isLoading: loading, error, refetch } = useQuery({
+  const { data: diaries = {}, isLoading: loading, isFetching, error, refetch } = useQuery({
     queryKey: ['diary', 'list', year, month],
     queryFn: async () => {
       const data = await diaryApi.getList(year, month);
@@ -99,6 +100,7 @@ export const useDiaryList = (year: number, month: number): UseDiaryListReturn =>
   return {
     diaries,
     loading,
+    isFetching,
     error,
     refetch: async () => { await refetch(); },
   };

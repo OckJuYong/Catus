@@ -32,7 +32,7 @@ export default function CalendarPage() {
   const month = displayDate.getMonth() + 1;
 
   // Fetch real diary data from API
-  const { diaries: diaryData, loading } = useDiaryList(year, month);
+  const { diaries: diaryData, loading, isFetching } = useDiaryList(year, month);
 
   // 캘린더 튜토리얼 표시 - 캘린더가 완전히 렌더링된 후에 시작
   useEffect(() => {
@@ -166,7 +166,7 @@ export default function CalendarPage() {
           <div className="pb-[12px] mb-0 flex flex-col shadow-md relative z-10" style={{ backgroundColor: 'var(--color-bg-card)', borderRadius: '0 0 24px 24px' }}>
             {viewMode === 'calendar' ? (
               <div className="relative" style={{ minHeight: '340px' }}>
-                {loading && (
+                {loading && !Object.keys(diaryData).length && (
                   <div
                     className="absolute flex items-center justify-center z-10"
                     style={{
@@ -181,6 +181,7 @@ export default function CalendarPage() {
                   </div>
                 )}
                 <Calendar
+                    key={`${year}-${month}`}
                     value={currentDate}
                     onActiveStartDateChange={({ activeStartDate }) => activeStartDate && setCurrentDate(activeStartDate)}
                     onClickDay={handleDayClick}
