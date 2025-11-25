@@ -17,7 +17,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     id: 2,
     target: ".cactus-group",
     message: "선인장을 클릭하면 익명으로 다른 사람에게 응원 메시지를 보낼 수 있어요",
-    position: "top"
+    position: "bottom"
   },
   {
     id: 3,

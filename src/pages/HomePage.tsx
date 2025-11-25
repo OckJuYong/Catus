@@ -86,27 +86,34 @@ export default function HomePage({ hideButtons = false, backgroundOnly = false }
     checkBig5Data();
   }, [backgroundOnly, navigate]);
 
-  // ====== 랜덤 일기 확인 및 튜토리얼 표시 ======
+  // ====== 현재 활성화된 튜토리얼 체크 (동시에 하나만) ======
+  const isAnyTutorialActive = showTutorial || showSupportTutorial || showAirplaneTutorial;
+
+  // ====== 응원일기 튜토리얼 ======
   useEffect(() => {
     if (backgroundOnly) return;
+    if (isAnyTutorialActive) return; // 다른 튜토리얼이 활성화되어 있으면 대기
+    if (!isTutorialCompleted) return; // 메인 튜토리얼 완료 후
 
     if (hasRandomDiary && !supportTutorialShown) {
       setTimeout(() => {
         setShowSupportTutorial(true);
-      }, 300);
+      }, 500);
     }
-  }, [backgroundOnly, hasRandomDiary, supportTutorialShown]);
+  }, [backgroundOnly, isAnyTutorialActive, isTutorialCompleted, hasRandomDiary, supportTutorialShown]);
 
-  // ====== 새 응원 메시지 확인 → 튜토리얼 표시 ======
+  // ====== 종이비행기 튜토리얼 ======
   useEffect(() => {
     if (backgroundOnly) return;
+    if (isAnyTutorialActive) return; // 다른 튜토리얼이 활성화되어 있으면 대기
+    if (!isTutorialCompleted) return; // 메인 튜토리얼 완료 후
 
     if (hasNewMessage && !airplaneTutorialShown) {
       setTimeout(() => {
         setShowAirplaneTutorial(true);
       }, 2500);
     }
-  }, [backgroundOnly, hasNewMessage, airplaneTutorialShown]);
+  }, [backgroundOnly, isAnyTutorialActive, isTutorialCompleted, hasNewMessage, airplaneTutorialShown]);
 
   // ====== 반응형 위치/스케일 ======
   const aspectRatio = window.innerHeight / window.innerWidth;
