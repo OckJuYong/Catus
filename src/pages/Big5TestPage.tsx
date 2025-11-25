@@ -8,12 +8,14 @@ import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { big5Api } from '../utils/api';
+import { useToast } from '../contexts/ToastContext';
 import { ROUTES } from '../constants/routes';
 import { BIG5_QUESTIONS, SCORE_OPTIONS } from '../constants/big5Questions';
 import footprintIcon from '../assets/images/footprint.svg';
 
 export default function Big5TestPage() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<Array<{ questionId: number; score: number }>>([]);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
@@ -32,7 +34,7 @@ export default function Big5TestPage() {
     },
     onError: (error: any) => {
       console.error('❌ Big5 테스트 제출 실패:', error);
-      alert(error.message || '테스트 제출에 실패했습니다. 다시 시도해주세요.');
+      showToast(error.message || '테스트 제출에 실패했습니다. 다시 시도해주세요.', 'error');
     },
   });
 

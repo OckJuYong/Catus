@@ -4,9 +4,11 @@ import { useNavigate } from "react-router-dom";
 import catImage from "../assets/images/cat.png";
 import footprintIcon from "../assets/images/footprint.svg";
 import api from "../utils/api";
+import { useToast } from "../contexts/ToastContext";
 
 export default function OnboardingPage() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [step, setStep] = useState(0);
   const [messages, setMessages] = useState<Array<{ type: string; text: string }>>([]);
   const [inputText, setInputText] = useState("");
@@ -180,7 +182,7 @@ export default function OnboardingPage() {
       } catch (error: any) {
         console.error('온보딩 저장 실패:', error);
         setIsLoading(false);
-        alert('온보딩 정보 저장에 실패했습니다. 다시 시도해주세요.');
+        showToast('온보딩 정보 저장에 실패했습니다. 다시 시도해주세요.', 'error');
       }
     }
   };

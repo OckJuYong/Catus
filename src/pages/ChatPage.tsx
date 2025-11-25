@@ -5,6 +5,7 @@ import { ROUTES } from "../constants/routes";
 import { EMOTION_COLORS, EMOTION_EMOJIS } from "../constants/emotionColors";
 import { useSendChatMessage } from "../hooks/useApi";
 import { chatApi } from "../utils/api";
+import { useToast } from "../contexts/ToastContext";
 import {
   saveChatMessageWithQuotaCheck,
   getChatMessagesByDate,
@@ -25,6 +26,7 @@ interface Message {
 
 export default function ChatPage() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const todayKey = getTodayKey(); // Timezone-safe 날짜 키
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
@@ -129,7 +131,7 @@ export default function ChatPage() {
     }
 
     if (cleaned.length > 1000) {
-      alert('메시지는 최대 1000자까지 입력 가능합니다.');
+      showToast('메시지는 최대 1000자까지 입력 가능합니다.', 'warning');
       return;
     }
 

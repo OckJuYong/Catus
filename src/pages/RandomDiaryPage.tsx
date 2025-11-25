@@ -8,6 +8,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { diaryApi, messageApi } from '../utils/api';
+import { useToast } from '../contexts/ToastContext';
 import { ROUTES } from '../constants/routes';
 import { EMOTION_COLORS } from '../constants/emotionColors';
 import HomePage from './HomePage';
@@ -17,6 +18,7 @@ import type { DiaryRandomResponse, Emotion } from '../types';
 
 export default function RandomDiaryPage() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [messageContent, setMessageContent] = useState('');
   const [showMessagePreview, setShowMessagePreview] = useState(false);
   const [showPlaneAnimation, setShowPlaneAnimation] = useState(false);
@@ -38,7 +40,7 @@ export default function RandomDiaryPage() {
   // 메시지 미리보기
   const handleMessagePreview = () => {
     if (!messageContent.trim()) {
-      alert('응원 메시지를 입력해주세요!');
+      showToast('응원 메시지를 입력해주세요!', 'warning');
       return;
     }
     setShowMessagePreview(true);
@@ -63,7 +65,7 @@ export default function RandomDiaryPage() {
     } catch (error) {
       console.error('Failed to send message:', error);
       setShowPlaneAnimation(false);
-      alert('메시지 전송에 실패했습니다. 다시 시도해주세요.');
+      showToast('메시지 전송에 실패했습니다. 다시 시도해주세요.', 'error');
     } finally {
       setIsSending(false);
     }

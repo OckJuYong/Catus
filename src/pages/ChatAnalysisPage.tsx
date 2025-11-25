@@ -5,10 +5,12 @@ import { useState } from 'react';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import { chatApi } from '../utils/api';
+import { useToast } from '../contexts/ToastContext';
 import type { ChatAnalysisResponse } from '../types';
 
 export default function ChatAnalysisPage() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [analysisResult, setAnalysisResult] = useState<ChatAnalysisResponse | null>(null);
@@ -56,17 +58,17 @@ export default function ChatAnalysisPage() {
     },
     onError: (error: any) => {
       console.error('채팅 분석 실패:', error);
-      alert(`분석에 실패했습니다: ${error.message || '알 수 없는 오류'}`);
+      showToast(`분석에 실패했습니다: ${error.message || '알 수 없는 오류'}`, 'error');
     },
   });
 
   const handleAnalyze = () => {
     if (!startDate || !endDate) {
-      alert('시작 날짜와 종료 날짜를 모두 선택해주세요.');
+      showToast('시작 날짜와 종료 날짜를 모두 선택해주세요.', 'warning');
       return;
     }
     if (new Date(startDate) > new Date(endDate)) {
-      alert('시작 날짜는 종료 날짜보다 이전이어야 합니다.');
+      showToast('시작 날짜는 종료 날짜보다 이전이어야 합니다.', 'warning');
       return;
     }
     analyzeMutation.mutate();
@@ -360,7 +362,6 @@ export default function ChatAnalysisPage() {
                         className="text-[16px] font-[600] bg-transparent border-0 flex items-center gap-[4px]"
                         style={{ color: 'var(--color-text-primary)' }}
                       >
-                        <span>‹</span>
                         <span>{selectedYear}년</span>
                       </button>
                     </div>

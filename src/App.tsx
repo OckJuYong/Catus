@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { TutorialProvider } from './contexts/TutorialContext';
 import { DarkModeProvider } from './contexts/DarkModeContext';
+import { ToastProvider } from './contexts/ToastContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import { PrivateRoute } from './components/PrivateRoute';
 import LoginPage from './pages/LoginPage';
@@ -27,8 +28,9 @@ function App() {
     <ErrorBoundary>
       <AuthProvider>
         <DarkModeProvider>
-          <TutorialProvider>
-            <Router>
+          <ToastProvider>
+            <TutorialProvider>
+              <Router>
               <Routes>
                 {/* Public Routes */}
                 <Route path="/" element={<LoginPage />} />
@@ -51,8 +53,9 @@ function App() {
                 <Route path="/big5/stats" element={<PrivateRoute><Big5StatsPage /></PrivateRoute>} />
                 <Route path="/big5/test" element={<PrivateRoute><Big5TestPage /></PrivateRoute>} />
               </Routes>
-            </Router>
-          </TutorialProvider>
+              </Router>
+            </TutorialProvider>
+          </ToastProvider>
         </DarkModeProvider>
       </AuthProvider>
     </ErrorBoundary>

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDarkMode } from '../contexts/DarkModeContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 import { useSettings, useUpdateProfile, useUpdateNotifications, useUpdateDiaryTime, useUpdateTheme } from '../hooks/useApi';
 // localStorage 키 상수
 const STORAGE_KEYS = {
@@ -32,6 +33,7 @@ function SettingsPage() {
   const navigate = useNavigate();
   const { isDarkMode, toggleDarkMode } = useDarkMode();
   const { user, getAccessToken } = useAuth();
+  const { showToast } = useToast();
 
   // React Query hooks
   const { data: settingsData, isLoading: isSettingsLoading, error: settingsError, refetch: refetchSettings } = useSettings();
@@ -111,11 +113,11 @@ function SettingsPage() {
         }));
         // 에러 유형에 따른 구체적인 메시지
         if (error?.status === 401) {
-          alert('로그인이 만료되었습니다. 다시 로그인해주세요.');
+          showToast('로그인이 만료되었습니다. 다시 로그인해주세요.', 'error');
         } else if (!navigator.onLine) {
-          alert('인터넷 연결을 확인해주세요.');
+          showToast('인터넷 연결을 확인해주세요.', 'error');
         } else {
-          alert('알림 설정 저장에 실패했습니다. 잠시 후 다시 시도해주세요.');
+          showToast('알림 설정 저장에 실패했습니다. 잠시 후 다시 시도해주세요.', 'error');
         }
       }
     } else {
@@ -149,7 +151,7 @@ function SettingsPage() {
   // 닉네임 저장
   const handleSaveNickname = async (): Promise<void> => {
     if (!newNickname) {
-      alert('새 닉네임을 입력해주세요.');
+      showToast('새 닉네임을 입력해주세요.', 'warning');
       return;
     }
 
@@ -169,15 +171,15 @@ function SettingsPage() {
       console.error('❌ [Settings] 닉네임 변경 실패:', error);
       // 에러 유형에 따른 구체적인 메시지
       if (error?.status === 409) {
-        alert('이미 사용 중인 닉네임입니다. 다른 닉네임을 입력해주세요.');
+        showToast('이미 사용 중인 닉네임입니다. 다른 닉네임을 입력해주세요.', 'error');
       } else if (error?.status === 400) {
-        alert('닉네임 형식이 올바르지 않습니다. (2~20자)');
+        showToast('닉네임 형식이 올바르지 않습니다. (2~20자)', 'error');
       } else if (error?.status === 401) {
-        alert('로그인이 만료되었습니다. 다시 로그인해주세요.');
+        showToast('로그인이 만료되었습니다. 다시 로그인해주세요.', 'error');
       } else if (!navigator.onLine) {
-        alert('인터넷 연결을 확인해주세요.');
+        showToast('인터넷 연결을 확인해주세요.', 'error');
       } else {
-        alert('닉네임 저장에 실패했습니다. 잠시 후 다시 시도해주세요.');
+        showToast('닉네임 저장에 실패했습니다. 잠시 후 다시 시도해주세요.', 'error');
       }
       setShowSaveModal(false);
     }
@@ -219,13 +221,13 @@ function SettingsPage() {
       console.error('❌ [Settings] 일기 생성 시간 변경 실패:', error);
       // 에러 유형에 따른 구체적인 메시지
       if (error?.status === 400) {
-        alert('시간 형식이 올바르지 않습니다.');
+        showToast('시간 형식이 올바르지 않습니다.', 'error');
       } else if (error?.status === 401) {
-        alert('로그인이 만료되었습니다. 다시 로그인해주세요.');
+        showToast('로그인이 만료되었습니다. 다시 로그인해주세요.', 'error');
       } else if (!navigator.onLine) {
-        alert('인터넷 연결을 확인해주세요.');
+        showToast('인터넷 연결을 확인해주세요.', 'error');
       } else {
-        alert('일기 생성 시간 저장에 실패했습니다. 잠시 후 다시 시도해주세요.');
+        showToast('일기 생성 시간 저장에 실패했습니다. 잠시 후 다시 시도해주세요.', 'error');
       }
       setShowSaveModal(false);
     }
