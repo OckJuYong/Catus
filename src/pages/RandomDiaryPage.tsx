@@ -12,6 +12,7 @@ import { ROUTES } from '../constants/routes';
 import { EMOTION_COLORS } from '../constants/emotionColors';
 import HomePage from './HomePage';
 import airplaneSvg from '../assets/images/airplane.svg';
+import footprintIcon from '../assets/images/footprint.svg';
 import type { DiaryRandomResponse, Emotion } from '../types';
 
 export default function RandomDiaryPage() {
@@ -167,12 +168,30 @@ export default function RandomDiaryPage() {
             {/* 헤더 */}
             <div className="px-[16px] pt-[12px] pb-[12px] flex items-start justify-between">
               <div className="text-left">
-                <h2
-                  className="text-[13px] font-semibold"
-                  style={{ color: 'var(--color-text-primary)' }}
-                >
-                  누군가의 그림일기
-                </h2>
+                <div className="flex items-center gap-[4px]">
+                  <h2
+                    className="text-[13px] font-semibold"
+                    style={{ color: 'var(--color-text-primary)' }}
+                  >
+                    누군가의 그림일기
+                  </h2>
+                  <div
+                    className="w-[13px] h-[13px]"
+                    style={{
+                      backgroundColor: (diary as any).emotion
+                        ? EMOTION_COLORS[(diary as any).emotion as Emotion]
+                        : '#9E9E9E',
+                      WebkitMaskImage: `url(${footprintIcon})`,
+                      WebkitMaskSize: 'contain',
+                      WebkitMaskRepeat: 'no-repeat',
+                      WebkitMaskPosition: 'center',
+                      maskImage: `url(${footprintIcon})`,
+                      maskSize: 'contain',
+                      maskRepeat: 'no-repeat',
+                      maskPosition: 'center',
+                    }}
+                  />
+                </div>
                 <p
                   className="text-[11px] mt-[2px]"
                   style={{ color: 'var(--color-text-secondary)' }}
@@ -184,8 +203,8 @@ export default function RandomDiaryPage() {
                 {/* 새로고침 버튼 */}
                 <button
                   onClick={handleRefresh}
-                  className="text-[17px] leading-none bg-transparent border-0 hover:opacity-70 transition-opacity"
-                  style={{ color: 'var(--color-text-secondary)' }}
+                  className="text-[20px] leading-none bg-transparent border-0 hover:opacity-70 transition-opacity"
+                  style={{ color: 'var(--color-text-secondary)', marginTop: '2px' }}
                 >
                   ↻
                 </button>
@@ -200,48 +219,22 @@ export default function RandomDiaryPage() {
               </div>
             </div>
 
-            {/* 그림 + 제목 */}
+            {/* 그림 */}
             <div className="px-[16px] mb-[16px]">
-              <div
-                className="p-[12px] rounded-xl shadow-sm border"
-                style={{
-                  backgroundColor: 'var(--color-bg-card)',
-                  borderColor: 'var(--color-border)',
-                }}
-              >
-                {diary.thumbnailUrl ? (
-                  <img
-                    src={diary.thumbnailUrl}
-                    alt="일기 그림"
-                    className="w-full h-[260px] rounded-md object-cover"
-                  />
-                ) : (
-                  <div
-                    className="w-full h-[260px] rounded-md flex items-center justify-center"
-                    style={{ backgroundColor: '#F9F9F9' }}
-                  >
-                    <span style={{ color: '#8B9A8E' }}>일기 그림</span>
-                  </div>
-                )}
-              </div>
-              <div className="mt-[12px] flex justify-center">
+              {diary.thumbnailUrl ? (
+                <img
+                  src={diary.thumbnailUrl}
+                  alt="일기 그림"
+                  className="w-full h-[260px] rounded-[12px] object-cover"
+                />
+              ) : (
                 <div
-                  style={{
-                    backgroundColor:
-                      (diary as any).emotion
-                        ? EMOTION_COLORS[(diary as any).emotion as Emotion]
-                        : '#9E9E9E',
-                  }}
-                  className="px-[4px] rounded-[4px] shadow-sm inline-block"
+                  className="w-full h-[260px] rounded-[12px] flex items-center justify-center"
+                  style={{ backgroundColor: '#F9F9F9' }}
                 >
-                  <p
-                    className="text-[10px] font-bold text-[#FFFFFF]"
-                    style={{ letterSpacing: '0.3px' }}
-                  >
-                    {diary.title || '오늘의 일기'}
-                  </p>
+                  <span style={{ color: '#8B9A8E' }}>일기 그림</span>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* 미리보기 텍스트 */}

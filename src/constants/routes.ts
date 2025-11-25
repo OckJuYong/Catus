@@ -15,7 +15,8 @@ export const ROUTES = {
   MESSAGES: "/messages",
   BIG5_STATS: "/big5/stats",
   BIG5_TEST: "/big5/test",
-  RANDOM_DIARY: "/random-diary"
+  RANDOM_DIARY: "/random-diary",
+  DIARY_REVEAL: "/diary-reveal"
 } as const;
 
 // 라우트 경로 생성 헬퍼
