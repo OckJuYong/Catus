@@ -165,13 +165,13 @@ export default function CalendarPage() {
           {/*  본문 */}
           <div className="pb-[12px] mb-0 flex flex-col shadow-md relative z-10" style={{ backgroundColor: 'var(--color-bg-card)', borderRadius: '0 0 24px 24px' }}>
             {viewMode === 'calendar' ? (
-              <>
-                {loading ? (
-                  <div className="flex items-center justify-center py-20">
+              <div className="relative" style={{ minHeight: '340px' }}>
+                {loading && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-[var(--color-bg-card)] z-10">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#5F6F52]"></div>
                   </div>
-                ) : (
-                  <Calendar
+                )}
+                <Calendar
                     value={currentDate}
                     onActiveStartDateChange={({ activeStartDate }) => activeStartDate && setCurrentDate(activeStartDate)}
                     onClickDay={handleDayClick}
@@ -198,8 +198,7 @@ export default function CalendarPage() {
                     next2Label={null}
                     prev2Label={null}
                   />
-                )}
-              </>
+              </div>
             ) : (
               /* 피드 모드 */
               <div className="w-[90%] mx-auto" style={{ height: '320px', minHeight: '320px' }}>
@@ -430,11 +429,24 @@ export default function CalendarPage() {
         }
 
         .react-calendar__tile--active {
-          background: transparent;
+          background: transparent !important;
+        }
+
+        .react-calendar__tile--active:enabled:hover,
+        .react-calendar__tile--active:enabled:focus {
+          background: rgba(95, 111, 82, 0.1) !important;
+        }
+
+        .react-calendar__tile--hasActive {
+          background: transparent !important;
         }
 
         .react-calendar__tile:enabled:hover {
           background: rgba(95, 111, 82, 0.1);
+        }
+
+        .react-calendar__tile:focus {
+          background: transparent;
         }
 
         .react-calendar__tile--neighboringMonth {
