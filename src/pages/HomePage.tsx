@@ -340,7 +340,7 @@ export default function HomePage({ hideButtons = false, backgroundOnly = false }
                         whiteSpace: 'pre-line'
                       }}
                     >
-                      달이가 편지를 들고 있어요 ✉️{'\n'}달이에게 편지를 받아봐요
+                      달이가 편지를 들고 있어요 ✉️{'\n'}익명으로 다른 사람에게 응원 메시지를 보낼 수 있어요
                     </p>
 
                     <button
@@ -490,7 +490,7 @@ export default function HomePage({ hideButtons = false, backgroundOnly = false }
                         marginBottom: '12px'
                       }}
                     >
-                      누군가가 메세지를 날렸어요
+                      누군가가 응원의 메세지를 날렸어요
                     </p>
 
                     <button

@@ -12,7 +12,6 @@ const STORAGE_KEYS = {
 
 interface ExpandedItems {
   nickname: boolean;
-  password: boolean;
   diaryTime: boolean;
 }
 
@@ -27,7 +26,7 @@ interface Notifications {
   encouragement: boolean;
 }
 
-type SaveType = 'nickname' | 'password' | 'diaryTime' | '';
+type SaveType = 'nickname' | 'diaryTime' | '';
 
 function SettingsPage() {
   const navigate = useNavigate();
@@ -44,16 +43,12 @@ function SettingsPage() {
   // 개별 항목 펼침/접힘 상태
   const [expandedItems, setExpandedItems] = useState<ExpandedItems>({
     nickname: false,
-    password: false,
     diaryTime: false
   });
 
   // 계정 관리 상태
   const [userNickname, setUserNickname] = useState('사용자123');
   const [newNickname, setNewNickname] = useState('');
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
 
   // 일기 설정 상태
   const [diaryTime, setDiaryTime] = useState<DiaryTime>({ hour: '09', minute: '00', period: 'PM' });
@@ -78,14 +73,12 @@ function SettingsPage() {
       if (prev[item]) {
         return {
           nickname: false,
-          password: false,
           diaryTime: false
         };
       }
       // 새로운 항목을 열 때는 다른 항목 모두 닫기
       return {
         nickname: false,
-        password: false,
         diaryTime: false,
         [item]: true
       };
@@ -194,61 +187,6 @@ function SettingsPage() {
   const handleCancelNickname = (): void => {
     setNewNickname('');
     setExpandedItems(prev => ({ ...prev, nickname: false }));
-  };
-
-  // 비밀번호 저장
-  const handleSavePassword = async (): Promise<void> => {
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      alert('모든 필드를 입력해주세요.');
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      alert('새 비밀번호가 일치하지 않습니다.');
-      return;
-    }
-    if (newPassword.length < 6) {
-      alert('비밀번호는 6자 이상이어야 합니다.');
-      return;
-    }
-
-    // 로딩 모달 표시
-    setShowSaveModal(true);
-    setSaveSuccess(false);
-    setSaveType('password');
-
-    try {
-      // React Query mutation으로 비밀번호 업데이트 (프로필 API 사용)
-      // currentPassword를 함께 전송하여 백엔드에서 검증
-      console.log('📤 [Settings] 비밀번호 변경 요청:', { nickname: userNickname, password: '***', currentPassword: '***' });
-      const result = await updateProfileMutation.mutateAsync({
-        nickname: userNickname,
-        password: newPassword,
-        currentPassword: currentPassword
-      });
-      console.log('✅ [Settings] 비밀번호 변경 성공:', result);
-      setSaveSuccess(true);
-    } catch (error: any) {
-      console.error('❌ [Settings] 비밀번호 변경 실패:', error);
-      // 에러 유형에 따른 구체적인 메시지
-      if (error?.status === 401 || error?.status === 403) {
-        alert('현재 비밀번호가 일치하지 않습니다.');
-      } else if (error?.status === 400) {
-        alert('새 비밀번호 형식이 올바르지 않습니다. (6자 이상)');
-      } else if (!navigator.onLine) {
-        alert('인터넷 연결을 확인해주세요.');
-      } else {
-        alert('비밀번호 변경에 실패했습니다. 잠시 후 다시 시도해주세요.');
-      }
-      setShowSaveModal(false);
-    }
-  };
-
-  // 비밀번호 취소
-  const handleCancelPassword = (): void => {
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
-    setExpandedItems(prev => ({ ...prev, password: false }));
   };
 
   // 일기 시간 변경 시작
@@ -387,11 +325,6 @@ function SettingsPage() {
     if (saveType === 'nickname') {
       setNewNickname('');
       setExpandedItems(prev => ({ ...prev, nickname: false }));
-    } else if (saveType === 'password') {
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-      setExpandedItems(prev => ({ ...prev, password: false }));
     } else if (saveType === 'diaryTime') {
       setExpandedItems(prev => ({ ...prev, diaryTime: false }));
     }
@@ -526,70 +459,6 @@ function SettingsPage() {
                       style={{ paddingTop: '12px', paddingBottom: '12px', backgroundColor: !newNickname ? '#ccc' : '#a3b899', border: 'none', borderRadius: '12px', fontSize: '14px' }}
                       onClick={handleSaveNickname}
                       disabled={!newNickname}
-                    >
-                      변경
-                    </button>
-                  </div>
-                </div>
-                </motion.div>
-              )}
-              </AnimatePresence>
-
-              {/* 비밀번호 변경 */}
-              <div className="flex justify-between items-center cursor-pointer transition-all active:scale-98" style={{ paddingTop: '16px', paddingBottom: '16px' }} onClick={() => toggleItem('password')}>
-                <span className="text-[#333]" style={{ fontSize: '15px' }}>비밀번호 변경</span>
-                <span className="text-[#999]" style={{ fontSize: '18px' }}>›</span>
-              </div>
-              <AnimatePresence>
-              {expandedItems.password && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                  style={{ overflow: 'hidden' }}
-                >
-                <div style={{ paddingTop: '16px', paddingBottom: '16px', paddingLeft: '0px', paddingRight: '0px' }}>
-                  <div className="text-[#666] font-semibold" style={{ fontSize: '13px', marginTop: '16px', marginBottom: '6px' }}>현재 비밀번호</div>
-                  <input
-                    type="password"
-                    className="w-full border border-[#e0e0e0] focus:outline-none focus:border-[#5F6F52]"
-                    style={{ paddingTop: '10px', paddingBottom: '10px', paddingLeft: '16px', paddingRight: '16px', borderRadius: '12px', fontSize: '15px', boxSizing: 'border-box' }}
-                    placeholder="현재 비밀번호를 입력하세요"
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                  />
-                  <div className="text-[#666] font-semibold" style={{ fontSize: '13px', marginTop: '16px', marginBottom: '6px' }}>새 비밀번호</div>
-                  <input
-                    type="password"
-                    className="w-full border border-[#e0e0e0] focus:outline-none focus:border-[#5F6F52]"
-                    style={{ paddingTop: '10px', paddingBottom: '10px', paddingLeft: '16px', paddingRight: '16px', borderRadius: '12px', fontSize: '15px', boxSizing: 'border-box' }}
-                    placeholder="새 비밀번호를 입력하세요"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                  />
-                  <div className="text-[#666] font-semibold" style={{ fontSize: '13px', marginTop: '16px', marginBottom: '6px' }}>새 비밀번호 확인</div>
-                  <input
-                    type="password"
-                    className="w-full border border-[#e0e0e0] focus:outline-none focus:border-[#5F6F52]"
-                    style={{ paddingTop: '10px', paddingBottom: '10px', paddingLeft: '16px', paddingRight: '16px', borderRadius: '12px', fontSize: '15px', boxSizing: 'border-box' }}
-                    placeholder="새 비밀번호를 다시 입력하세요"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                  />
-                  <div className="flex" style={{ gap: '8px', marginTop: '16px' }}>
-                    <button
-                      className="flex-1 bg-white text-[#666] font-semibold cursor-pointer transition-all active:scale-93"
-                      style={{ paddingTop: '12px', paddingBottom: '12px', border: '2px solid #e0e0e0', borderRadius: '12px', fontSize: '14px' }}
-                      onClick={handleCancelPassword}
-                    >
-                      취소
-                    </button>
-                    <button
-                      className="flex-1 text-[white] font-semibold cursor-pointer transition-all active:scale-93 disabled:opacity-50 disabled:cursor-not-allowed"
-                      style={{ paddingTop: '12px', paddingBottom: '12px', backgroundColor: (!currentPassword || !newPassword || !confirmPassword) ? '#ccc' : '#a3b899', border: 'none', borderRadius: '12px', fontSize: '14px' }}
-                      onClick={handleSavePassword}
-                      disabled={!currentPassword || !newPassword || !confirmPassword}
                     >
                       변경
                     </button>
