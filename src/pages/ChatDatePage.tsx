@@ -4,10 +4,12 @@ import { motion } from 'framer-motion';
 import { ROUTES } from '../constants/routes';
 import { chatApi } from '../utils/api';
 import { formatDate } from '../utils/dateFormat';
+import { useDarkMode } from '../contexts/DarkModeContext';
 
 export default function ChatDatePage() {
   const navigate = useNavigate();
   const { date } = useParams<{ date: string }>();
+  const { isDarkMode } = useDarkMode();
 
   // 특정 날짜 채팅 조회 (백엔드: GET /api/chat/context/{date})
   const { data: chatData, isLoading, error } = useQuery({
@@ -23,10 +25,13 @@ export default function ChatDatePage() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#fef9f1] flex items-center justify-center">
+      <div
+        className="h-[100dvh] flex items-center justify-center"
+        style={{ backgroundColor: 'var(--color-main-bg)' }}
+      >
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#5F6F52] mx-auto mb-4"></div>
-          <p className="text-gray-600">채팅을 불러오는 중...</p>
+          <div className="animate-spin rounded-full h-[48px] w-[48px] border-b-2 border-[#5E7057] mx-auto mb-[16px]"></div>
+          <p style={{ color: 'var(--color-text-secondary)' }}>채팅을 불러오는 중...</p>
         </div>
       </div>
     );
@@ -35,12 +40,25 @@ export default function ChatDatePage() {
   // Error state
   if (error || !chatData) {
     return (
-      <div className="min-h-screen bg-[#fef9f1] flex flex-col items-center justify-center p-4">
-        <h1 className="text-2xl font-bold mb-4 text-gray-800">😢 채팅을 불러올 수 없습니다</h1>
-        <p className="text-gray-600 mb-8">해당 날짜의 채팅 기록을 찾을 수 없습니다.</p>
+      <div
+        className="h-[100dvh] flex flex-col items-center justify-center p-[16px]"
+        style={{ backgroundColor: 'var(--color-main-bg)' }}
+      >
+        <h1
+          className="text-[20px] font-[600] mb-[16px]"
+          style={{ color: 'var(--color-text-primary)' }}
+        >
+          😢 채팅을 불러올 수 없습니다
+        </h1>
+        <p
+          className="text-[14px] mb-[32px]"
+          style={{ color: 'var(--color-text-secondary)' }}
+        >
+          해당 날짜의 채팅 기록을 찾을 수 없습니다.
+        </p>
         <button
           onClick={() => navigate(ROUTES.CHAT)}
-          className="px-6 py-3 bg-[#5F6F52] text-white rounded-lg hover:opacity-90 transition-opacity"
+          className="px-[24px] py-[12px] bg-[#5E7057] text-[#FFFFFF] rounded-[12px] text-[14px] font-[500] border-0 hover:opacity-90"
         >
           채팅으로 돌아가기
         </button>
@@ -48,53 +66,91 @@ export default function ChatDatePage() {
     );
   }
 
-  const messages = chatData.messages || [];
+  // 임시 목 데이터 (디자인 확인용)
+  const mockMessages = [
+    {
+      id: '1',
+      userMessage: '오늘 하루가 너무 힘들었어. 회사에서 프로젝트 마감이 다가오는데 잘 안 풀려서 스트레스 받았어.',
+      aiResponse: '힘든 하루를 보냈구나. 프로젝트 마감 압박은 정말 스트레스받을 수 있어. 잠시 쉬어가면서 하나씩 해결해보는 건 어떨까? 넌 충분히 잘하고 있어 💪',
+      timestamp: '2025-11-26T10:30:00',
+    },
+    {
+      id: '2',
+      userMessage: '고마워. 그래도 네가 있어서 다행이야.',
+      aiResponse: '언제든지 이야기해줘. 네 곁에서 항상 응원하고 있을게 🐱',
+      timestamp: '2025-11-26T10:32:00',
+    },
+    {
+      id: '3',
+      userMessage: '점심은 뭐 먹을까 고민이야',
+      aiResponse: '오늘 날씨가 쌀쌀하니까 따뜻한 국물 요리는 어때? 김치찌개나 된장찌개 같은 거! 든든하게 먹고 오후도 파이팅 하자 😊',
+      timestamp: '2025-11-26T12:15:00',
+    },
+  ];
+
+  const messages = mockMessages; // chatData.messages || [];
 
   return (
-    <div className="min-h-screen bg-[#fef9f1]">
-      {/* Header */}
-      <div className="bg-white shadow-sm sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
-          <button
-            onClick={() => navigate(ROUTES.CHAT)}
-            className="text-2xl text-gray-700 hover:text-gray-900"
-          >
-            ‹
-          </button>
-          <h1 className="text-xl font-bold text-gray-800">
-            {chatData.date && formatDate(chatData.date, 'full')}
-          </h1>
-          <div className="w-8"></div>
+    <div
+      className="h-[100dvh] flex flex-col overflow-hidden"
+      style={{ backgroundColor: 'var(--color-main-bg)' }}
+    >
+      {/* 헤더 */}
+      <div
+        className="flex items-center justify-between px-[12px] py-[12px] flex-shrink-0"
+        style={{ backgroundColor: 'var(--color-bg-card)' }}
+      >
+        <button
+          onClick={() => navigate(ROUTES.CHAT)}
+          className="hover:opacity-70 text-[20px] bg-transparent border-0"
+          style={{ marginTop: '-5px', color: isDarkMode ? '#FFFFFF' : '#5E7057' }}
+        >
+          ←
+        </button>
+        <div
+          className="text-[16px] font-[600]"
+          style={{ color: isDarkMode ? '#FFFFFF' : '#5E7057' }}
+        >
+          {chatData.date && formatDate(chatData.date, 'full')}
         </div>
+        <div className="w-[20px]" />
       </div>
 
-      {/* Chat Messages */}
-      <div className="max-w-2xl mx-auto px-4 py-6">
+      {/* 채팅 메시지 */}
+      <div className="flex-1 overflow-y-auto px-[16px] py-[16px]">
         {messages.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="text-6xl mb-4">💬</div>
-            <p className="text-gray-600 text-lg mb-2">이 날짜의 대화가 없습니다</p>
-            <p className="text-gray-500 text-sm">
+          <div className="text-center py-[64px]">
+            <div className="text-[48px] mb-[16px]">💬</div>
+            <p
+              className="text-[16px] mb-[8px]"
+              style={{ color: 'var(--color-text-secondary)' }}
+            >
+              이 날짜의 대화가 없습니다
+            </p>
+            <p
+              className="text-[13px]"
+              style={{ color: 'var(--color-text-secondary)' }}
+            >
               다른 날짜를 선택해주세요
             </p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="flex flex-col gap-[16px]">
             {messages.map((msg, index) => (
               <motion.div
                 key={msg.id || index}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: index * 0.05 }}
-                className="space-y-4"
+                className="flex flex-col gap-[12px]"
               >
                 {/* User Message */}
                 <div className="flex justify-end">
-                  <div className="bg-[#5F6F52] text-white rounded-2xl px-4 py-3 max-w-[70%] shadow-md">
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                  <div className="bg-[#5E7057] text-[#FFFFFF] rounded-[16px] px-[14px] py-[10px] max-w-[75%]">
+                    <p className="text-[14px] leading-relaxed whitespace-pre-wrap">
                       {msg.userMessage}
                     </p>
-                    <p className="text-xs text-gray-200 mt-2">
+                    <p className="text-[11px] text-[rgba(255,255,255,0.7)] mt-[6px]">
                       {formatDate(msg.timestamp, 'time')}
                     </p>
                   </div>
@@ -102,11 +158,23 @@ export default function ChatDatePage() {
 
                 {/* AI Response */}
                 <div className="flex justify-start">
-                  <div className="bg-white rounded-2xl px-4 py-3 max-w-[70%] shadow-md border border-gray-200">
-                    <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
+                  <div
+                    className="rounded-[16px] px-[14px] py-[10px] max-w-[75%] border"
+                    style={{
+                      backgroundColor: 'var(--color-bg-card)',
+                      borderColor: 'var(--color-border)',
+                    }}
+                  >
+                    <p
+                      className="text-[14px] leading-relaxed whitespace-pre-wrap"
+                      style={{ color: 'var(--color-text-primary)' }}
+                    >
                       {msg.aiResponse}
                     </p>
-                    <p className="text-xs text-gray-500 mt-2">
+                    <p
+                      className="text-[11px] mt-[6px]"
+                      style={{ color: 'var(--color-text-secondary)' }}
+                    >
                       {formatDate(msg.timestamp, 'time')}
                     </p>
                   </div>
@@ -117,26 +185,34 @@ export default function ChatDatePage() {
         )}
       </div>
 
-      {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg">
-        <div className="max-w-2xl mx-auto px-4 py-4 flex gap-3">
+      {/* 하단 버튼 */}
+      <div
+        className="flex-shrink-0 px-[16px] py-[12px] border-t"
+        style={{
+          backgroundColor: 'var(--color-bg-card)',
+          borderColor: 'var(--color-border)',
+        }}
+      >
+        <div className="flex gap-[12px]">
           <button
             onClick={() => navigate(ROUTES.CHAT)}
-            className="flex-1 py-3 bg-white text-gray-700 rounded-xl font-semibold hover:bg-gray-100 transition-colors border border-gray-300"
+            className="flex-1 py-[12px] rounded-[12px] text-[14px] font-[500] border"
+            style={{
+              backgroundColor: 'var(--color-main-bg)',
+              borderColor: 'var(--color-border)',
+              color: 'var(--color-text-primary)',
+            }}
           >
             채팅으로
           </button>
           <button
             onClick={() => navigate(ROUTES.HOME)}
-            className="flex-1 py-3 bg-[#5F6F52] text-white rounded-xl font-semibold hover:opacity-90 transition-opacity"
+            className="flex-1 py-[12px] bg-[#5E7057] text-[#FFFFFF] rounded-[12px] text-[14px] font-[500] border-0"
           >
             홈으로
           </button>
         </div>
       </div>
-
-      {/* Bottom padding */}
-      <div className="h-24"></div>
     </div>
   );
 }
