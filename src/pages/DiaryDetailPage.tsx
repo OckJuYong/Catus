@@ -295,7 +295,7 @@ export default function DiaryDetailPage() {
               onClick={() => setShowCommentSheet(true)}
               className="flex items-center gap-[6px] bg-transparent border-0 hover:opacity-80"
             >
-              <svg width="25" height="25" viewBox="0 0 24 24" fill={isDarkMode ? '#333333' : '#FFFFFF'} stroke={isDarkMode ? '#FFFFFF' : '#000000'} strokeWidth="1.5">
+              <svg width="25" height="25" viewBox="0 0 24 24" fill="#FFFFFF" stroke={isDarkMode ? '#FFFFFF' : '#000000'} strokeWidth="1.5">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
               </svg>
               <span className="text-[14px] font-[600]" style={{ color: 'var(--color-text-primary)' }}>{commentCount}</span>
