@@ -18,9 +18,9 @@ const BIG5_TRAITS = {
 
 // 레이더 차트 컴포넌트
 const RadarChart = ({ scores }: { scores: Record<string, number> }) => {
-  const size = 280;
+  const size = 240;
   const center = size / 2;
-  const radius = 100;
+  const radius = 80;
   const levels = 5;
 
   // 5개 꼭지점 각도 (위에서 시작, 시계방향)
@@ -29,18 +29,18 @@ const RadarChart = ({ scores }: { scores: Record<string, number> }) => {
 
   const getPoint = (index: number, value: number) => {
     const angle = (Math.PI * 2 * index) / 5 - Math.PI / 2;
-    const r = (value / 5) * radius;
+    const r = (value / 100) * radius; // 100% 기준
     return {
       x: center + r * Math.cos(angle),
       y: center + r * Math.sin(angle),
     };
   };
 
-  // 배경 오각형 (레벨별)
+  // 배경 오각형 (레벨별 - 20%, 40%, 60%, 80%, 100%)
   const backgroundPolygons = [];
   for (let level = 1; level <= levels; level++) {
     const points = traits.map((_, i) => {
-      const point = getPoint(i, level);
+      const point = getPoint(i, level * 20);
       return `${point.x},${point.y}`;
     }).join(' ');
     backgroundPolygons.push(
@@ -56,7 +56,7 @@ const RadarChart = ({ scores }: { scores: Record<string, number> }) => {
 
   // 축선
   const axisLines = traits.map((_, i) => {
-    const point = getPoint(i, 5);
+    const point = getPoint(i, 100);
     return (
       <line
         key={i}
@@ -70,17 +70,18 @@ const RadarChart = ({ scores }: { scores: Record<string, number> }) => {
     );
   });
 
-  // 데이터 다각형
+  // 데이터 다각형 (점수를 100% 기준 퍼센트로 변환)
   const dataPoints = traits.map((trait, i) => {
     const score = scores[trait] || 0;
-    return getPoint(i, score);
+    const percentage = (score / 5) * 100; // 5점 만점을 100%로
+    return getPoint(i, percentage);
   });
   const dataPolygon = dataPoints.map(p => `${p.x},${p.y}`).join(' ');
 
   // 라벨 위치
   const labelPositions = traits.map((_, i) => {
     const angle = (Math.PI * 2 * i) / 5 - Math.PI / 2;
-    const labelRadius = radius + 35;
+    const labelRadius = radius + 30;
     return {
       x: center + labelRadius * Math.cos(angle),
       y: center + labelRadius * Math.sin(angle),
@@ -88,7 +89,12 @@ const RadarChart = ({ scores }: { scores: Record<string, number> }) => {
   });
 
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+    <svg
+      width="100%"
+      height="auto"
+      viewBox={`0 0 ${size} ${size}`}
+      style={{ maxWidth: '240px' }}
+    >
       {/* 배경 오각형 */}
       {backgroundPolygons}
       {/* 축선 */}
@@ -106,7 +112,7 @@ const RadarChart = ({ scores }: { scores: Record<string, number> }) => {
           key={i}
           cx={point.x}
           cy={point.y}
-          r="6"
+          r="5"
           fill="#5E7057"
         />
       ))}
@@ -118,7 +124,7 @@ const RadarChart = ({ scores }: { scores: Record<string, number> }) => {
           y={pos.y}
           textAnchor="middle"
           dominantBaseline="middle"
-          fontSize="14"
+          fontSize="12"
           fontWeight="600"
           fill="#333"
         >
@@ -241,20 +247,20 @@ export default function Big5StatsPage() {
       </div>
 
       {/* 성격 점수 - 스크롤 영역 */}
-      <div className="flex-1 overflow-y-auto px-[16px] py-[16px]">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden px-[16px] py-[16px]">
         {/* 레이더 차트 */}
         <div
-          className="rounded-[16px] p-[16px] mb-[16px]"
+          className="rounded-[16px] p-[16px] mb-[16px] overflow-hidden"
           style={{ backgroundColor: 'var(--color-bg-card)' }}
         >
-          <div className="flex justify-center">
+          <div className="flex justify-center items-center">
             <RadarChart scores={scores} />
           </div>
         </div>
 
         {/* 성격 특성 바 그래프 */}
         <div
-          className="rounded-[16px] p-[16px] mb-[16px]"
+          className="rounded-[16px] p-[16px] mb-[16px] overflow-hidden"
           style={{ backgroundColor: 'var(--color-bg-card)' }}
         >
           <div className="flex flex-col gap-[20px]">
@@ -308,7 +314,7 @@ export default function Big5StatsPage() {
             className="text-[14px] font-[600] mb-[8px]"
             style={{ color: 'var(--color-text-primary)' }}
           >
-            📊 자동 업데이트 시스템
+            자동 업데이트 시스템
           </h3>
           <p
             className="text-[13px] leading-relaxed"
