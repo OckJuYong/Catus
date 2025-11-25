@@ -176,7 +176,7 @@ export default function RandomDiaryPage() {
                     누군가의 그림일기
                   </h2>
                   <div
-                    className="w-[13px] h-[13px]"
+                    className="w-[14px] h-[14px]"
                     style={{
                       backgroundColor: (diary as any).emotion
                         ? EMOTION_COLORS[(diary as any).emotion as Emotion]
@@ -203,7 +203,7 @@ export default function RandomDiaryPage() {
                 {/* 새로고침 버튼 */}
                 <button
                   onClick={handleRefresh}
-                  className="text-[20px] leading-none bg-transparent border-0 hover:opacity-70 transition-opacity"
+                  className="text-[17px] leading-none bg-transparent border-0 hover:opacity-70 transition-opacity"
                   style={{ color: 'var(--color-text-secondary)', marginTop: '2px' }}
                 >
                   ↻

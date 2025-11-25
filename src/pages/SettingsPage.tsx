@@ -415,7 +415,7 @@ function SettingsPage() {
           <h3 className="text-[#999] font-semibold text-center" style={{ fontSize: '12px', margin: '0 0 8px 0', paddingLeft: '16px', paddingRight: '16px' }}>계정 관리</h3>
           <div className="bg-[white]" style={{ borderRadius: '16px', paddingTop: '8px', paddingBottom: '8px', paddingLeft: '16px', paddingRight: '16px', marginBottom: '8px' }}>
               {/* 닉네임 변경 */}
-              <div className="flex justify-between items-center cursor-pointer transition-all active:scale-98" style={{ paddingTop: '16px', paddingBottom: '16px', borderBottom: '1px solid #f0f0f0' }} onClick={() => toggleItem('nickname')}>
+              <div className="flex justify-between items-center cursor-pointer transition-all active:scale-98" style={{ paddingTop: '16px', paddingBottom: '16px' }} onClick={() => toggleItem('nickname')}>
                 <span className="text-[#333]" style={{ fontSize: '15px' }}>닉네임 변경</span>
                 <span className="text-[#999]" style={{ fontSize: '18px' }}>›</span>
               </div>
