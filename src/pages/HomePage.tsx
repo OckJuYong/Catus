@@ -117,18 +117,26 @@ export default function HomePage({ hideButtons = false, backgroundOnly = false }
 
   // ====== 반응형 위치/스케일 ======
   const aspectRatio = window.innerHeight / window.innerWidth;
+  const isLandscape = aspectRatio < 1; // 가로가 더 긴 경우
+
   const baseScale =
     aspectRatio > 1.8 ? 1.18 : aspectRatio > 1.5 ? 1.08 : aspectRatio > 1.2 ? 0.95 : 0.85;
-  const catScale =
-    aspectRatio > 1.8
+
+  const catScale = isLandscape
+    ? 1.0 // 가로 모드에서 고양이 크기 유지
+    : aspectRatio > 1.8
       ? baseScale * 1.0
       : aspectRatio > 1.5
       ? baseScale * 0.95
       : aspectRatio > 1.2
       ? baseScale * 0.8
       : baseScale * 0.7;
+
   const heightRatio = Math.min(aspectRatio * 1.2, 1.3);
   const cactusScale = 0.9 + (heightRatio - 1) * 0.5;
+
+  // 가로 모드에서 선인장 위치 조정
+  const cactusTop = isLandscape ? "35%" : "34%";
 
   const openChat = (): void => navigate(ROUTES.CHAT);
 
@@ -523,7 +531,7 @@ export default function HomePage({ hideButtons = false, backgroundOnly = false }
         onClick={handleCactusClick}
         className="cactus-group absolute z-10 hover:scale-110 active:scale-95 transition-transform bg-transparent p-0 border-0"
         style={{
-          top: "34%",
+          top: cactusTop,
           left: "20%",
           transform: `translateY(-100%) scale(${cactusScale})`,
         }}
