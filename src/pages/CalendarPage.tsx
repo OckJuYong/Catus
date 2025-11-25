@@ -466,23 +466,16 @@ export default function CalendarPage() {
           outline: none !important;
         }
 
-        .react-calendar__tile--neighboringMonth,
-        .react-calendar__month-view__days__day--neighboringMonth {
-          display: none !important;
+        .react-calendar__tile--neighboringMonth {
           visibility: hidden !important;
-          height: 0 !important;
-          min-height: 0 !important;
-          max-height: 0 !important;
-          padding: 0 !important;
-          margin: 0 !important;
           pointer-events: none !important;
-          overflow: hidden !important;
-          opacity: 0 !important;
         }
 
-        .react-calendar__tile--neighboringMonth *,
-        .react-calendar__month-view__days__day--neighboringMonth * {
+        .react-calendar__tile--neighboringMonth abbr {
           display: none !important;
+        }
+
+        .react-calendar__month-view__days__day--neighboringMonth {
           visibility: hidden !important;
         }
       `}</style>
