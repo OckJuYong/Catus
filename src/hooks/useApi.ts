@@ -181,12 +181,12 @@ export const useSettings = (options?: UseQueryOptions<SettingsResponse, ApiError
 };
 
 export const useUpdateProfile = (
-  options?: UseMutationOptions<{ profile: any }, ApiError, { nickname: string; password?: string }>
+  options?: UseMutationOptions<{ profile: any }, ApiError, { nickname: string; password?: string; currentPassword?: string }>
 ) => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ nickname, password }: { nickname: string; password?: string }) =>
-      settingsApi.updateProfile(nickname, password),
+    mutationFn: ({ nickname, password, currentPassword }: { nickname: string; password?: string; currentPassword?: string }) =>
+      settingsApi.updateProfile(nickname, password, currentPassword),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.settings.all() });
     },
@@ -235,14 +235,13 @@ export const useMonthlyStats = (year: number, month: number, options?: UseQueryO
 // Additional Settings Hooks
 // ============================================================================
 
-// 백엔드: PUT /api/settings/notifications (diaryCreated, messageReceived 파라미터 사용)
+// 백엔드: PUT /api/settings/notifications (anonymous 파라미터만 지원)
 export const useUpdateNotifications = (
-  options?: UseMutationOptions<{ notifications: { diaryCreated: boolean; messageReceived: boolean } }, ApiError, { diaryCreated: boolean; messageReceived: boolean }>
+  options?: UseMutationOptions<{ settings: { notifications: { anonymous: boolean } } }, ApiError, boolean>
 ) => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ diaryCreated, messageReceived }: { diaryCreated: boolean; messageReceived: boolean }) =>
-      settingsApi.updateNotifications(diaryCreated, messageReceived),
+    mutationFn: (anonymous: boolean) => settingsApi.updateNotifications(anonymous),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.settings.all() });
     },
@@ -254,6 +253,20 @@ export const useUpdateDiaryTime = (options?: UseMutationOptions<SettingsResponse
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (time: string) => settingsApi.updateDiaryTime(time),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.settings.all() });
+    },
+    ...options,
+  });
+};
+
+// 테마(다크모드) 업데이트 - 백엔드 지원시 사용
+export const useUpdateTheme = (
+  options?: UseMutationOptions<{ theme: { darkMode: boolean } }, ApiError, boolean>
+) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (darkMode: boolean) => settingsApi.updateTheme(darkMode),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.settings.all() });
     },

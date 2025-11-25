@@ -416,16 +416,18 @@ export const settingsApi = {
     put('/settings/diary-time', { time }),
 
   // 알림 설정 변경 (백엔드: PUT /api/settings/notifications)
-  updateNotifications: (diaryCreated: boolean, messageReceived: boolean): Promise<{ notifications: { diaryCreated: boolean; messageReceived: boolean } }> =>
-    put('/settings/notifications', { diaryCreated, messageReceived }),
+  // 백엔드 필드명: anonymous (응원 메시지 알림만 지원)
+  updateNotifications: (anonymous: boolean): Promise<{ settings: { notifications: { anonymous: boolean } } }> =>
+    put('/settings/notifications', { anonymous }),
 
   // 테마 설정 변경 (백엔드: PUT /api/settings/theme)
   updateTheme: (darkMode: boolean): Promise<{ theme: { darkMode: boolean } }> =>
     put('/settings/theme', { darkMode }),
 
   // 프로필 수정 (백엔드: PUT /api/settings/profile)
-  updateProfile: (nickname: string, password?: string): Promise<{ nickname: string; updatedAt: string }> =>
-    put('/settings/profile', { nickname, password }),
+  // currentPassword: 비밀번호 변경 시 현재 비밀번호 검증용
+  updateProfile: (nickname: string, password?: string, currentPassword?: string): Promise<{ nickname: string; updatedAt: string }> =>
+    put('/settings/profile', { nickname, password, currentPassword }),
 };
 
 /**

@@ -86,7 +86,10 @@ export default function KakaoCallbackPage() {
           }
         }
 
-        // 4. 사용자 정보 저장 (AuthContext에 user 설정)
+        // 4. 로그인 타입 저장 (소셜 로그인 여부 확인용)
+        localStorage.setItem('catus_login_type', 'kakao');
+
+        // 5. 사용자 정보 저장 (AuthContext에 user 설정)
         const tempUser = {
           id: userId,
           nickname: '사용자', // 온보딩에서 설정
