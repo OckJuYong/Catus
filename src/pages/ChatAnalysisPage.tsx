@@ -13,7 +13,18 @@ export default function ChatAnalysisPage() {
   const { showToast } = useToast();
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [analysisResult, setAnalysisResult] = useState<ChatAnalysisResponse | null>(null);
+  // 임시 목업 데이터 (디자인 확인용)
+  const [analysisResult, setAnalysisResult] = useState<ChatAnalysisResponse | null>({
+    period: { start: '2025-11-01', end: '2025-11-26' },
+    emotionScores: {
+      openness: 7.2,
+      conscientiousness: 6.5,
+      extraversion: 4.8,
+      agreeableness: 8.1,
+      neuroticism: 3.2,
+    },
+    summary: '분석 기간 동안 전반적으로 긍정적인 감정 상태를 유지하고 있습니다. 특히 친화성이 높게 나타나 대인관계에서 협조적이고 따뜻한 성향을 보입니다. 개방성도 높아 새로운 경험에 대한 호기심이 많으며, 창의적인 사고를 즐기는 편입니다.\n\n신경증 점수가 낮아 정서적으로 안정되어 있으며, 스트레스 상황에서도 비교적 침착하게 대처하는 모습을 보입니다.',
+  });
   const [showCalendar, setShowCalendar] = useState<'start' | 'end' | null>(null);
   const [pickerMode, setPickerMode] = useState<'calendar' | 'year' | 'month'>('calendar');
   const [calendarDate, setCalendarDate] = useState(new Date());
