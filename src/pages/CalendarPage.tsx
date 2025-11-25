@@ -34,14 +34,20 @@ export default function CalendarPage() {
   // Fetch real diary data from API
   const { diaries: diaryData, loading } = useDiaryList(year, month);
 
-  // 캘린더 튜토리얼 표시
+  // 캘린더 튜토리얼 표시 - 캘린더가 완전히 렌더링된 후에 시작
   useEffect(() => {
-    if (!calendarTutorialShown) {
-      setTimeout(() => {
-        setShowCalendarTutorial(true);
-      }, 500);
+    if (!calendarTutorialShown && !loading) {
+      // 캘린더 모달 애니메이션(300ms) + 여유 시간
+      const timer = setTimeout(() => {
+        // 메뉴 버튼이 실제로 렌더링되었는지 확인
+        const menuButton = document.querySelector('.calendar-menu-button');
+        if (menuButton) {
+          setShowCalendarTutorial(true);
+        }
+      }, 800);
+      return () => clearTimeout(timer);
     }
-  }, [calendarTutorialShown]);
+  }, [calendarTutorialShown, loading]);
 
   // Browser back button handling for modal
   useEffect(() => {
