@@ -158,8 +158,16 @@ export default function ChatPage() {
         recognitionRef.current.stop();
       } else {
         console.log('[음성인식] 시작 시도');
-        setInputValue('');
-        recognitionRef.current.start();
+        try {
+          // 먼저 마이크 권한 명시적 요청
+          await navigator.mediaDevices.getUserMedia({ audio: true });
+          console.log('[음성인식] 마이크 권한 획득 성공');
+          setInputValue('');
+          recognitionRef.current.start();
+        } catch (err) {
+          console.error('[음성인식] 마이크 권한 요청 실패:', err);
+          showToast('마이크 권한을 허용해주세요', 'error');
+        }
       }
     }
   }, [isNative, listening, browserSupportsSpeechRecognition, showToast]);
