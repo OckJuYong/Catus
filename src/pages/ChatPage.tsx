@@ -124,9 +124,16 @@ export default function ChatPage() {
         console.log('[음성인식] 중지');
         WebSpeechRecognition.stopListening();
       } else {
-        console.log('[음성인식] 시작');
+        console.log('[음성인식] 시작 시도...');
+        console.log('[음성인식] webListening 상태:', webListening);
         resetTranscript();
-        WebSpeechRecognition.startListening({ language: 'ko-KR', continuous: true });
+        try {
+          await WebSpeechRecognition.startListening({ language: 'ko-KR', continuous: true });
+          console.log('[음성인식] 시작 성공');
+        } catch (err) {
+          console.error('[음성인식] 시작 실패:', err);
+          showToast('음성 인식을 시작할 수 없습니다', 'error');
+        }
       }
     }
   };
