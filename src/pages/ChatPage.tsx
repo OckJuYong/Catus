@@ -87,11 +87,19 @@ export default function ChatPage() {
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-      console.error('[음성인식] 에러:', event.error);
+      console.error('[음성인식] 에러:', event.error, event.message);
       setListening(false);
-      if (event.error === 'not-allowed') {
-        showToast('마이크 권한이 필요합니다', 'error');
-      }
+
+      const errorMessages: Record<string, string> = {
+        'not-allowed': '마이크 권한이 필요합니다. 브라우저 설정에서 허용해주세요.',
+        'no-speech': '음성이 감지되지 않았습니다. 다시 시도해주세요.',
+        'audio-capture': '마이크를 찾을 수 없습니다.',
+        'network': '네트워크 오류가 발생했습니다.',
+        'aborted': '음성 인식이 중단되었습니다.',
+        'service-not-allowed': '음성 인식 서비스를 사용할 수 없습니다.',
+      };
+
+      showToast(errorMessages[event.error] || `음성 인식 오류: ${event.error}`, 'error');
     };
 
     recognitionRef.current = recognition;
