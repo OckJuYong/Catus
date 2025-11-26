@@ -24,6 +24,7 @@ export default function DiaryDetailPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [editedContent, setEditedContent] = useState('');
   const [showBig5Sheet, setShowBig5Sheet] = useState(false);
+  const [showShareSheet, setShowShareSheet] = useState(false);
 
   // Fetch diary data (백엔드: GET /api/diary/{id})
   const { data: diaryData, isLoading, error } = useQuery({
@@ -151,12 +152,36 @@ export default function DiaryDetailPage() {
     return colors[emotion || '보통'] || '#AFCBFF';
   };
 
-  // 공유 기능
-  const handleShare = async () => {
+  // 공유 시트 열기
+  const handleShareClick = () => {
+    setShowShareSheet(true);
+  };
+
+  // 클립보드 복사
+  const handleCopyToClipboard = async () => {
+    if (!diary) return;
+
+    const shareText = `${diary.date ? formatDate(diary.date) : '오늘'}의 일기\n\n${diary.content || ''}`;
+
+    try {
+      await navigator.clipboard.writeText(shareText);
+      setToastMessage('클립보드에 복사되었습니다');
+    } catch (err) {
+      console.error('클립보드 복사 실패:', err);
+      setToastMessage('복사에 실패했습니다');
+    }
+
+    setShowShareSheet(false);
+    setTimeout(() => setToastMessage(''), 3000);
+  };
+
+  // 앱으로 공유
+  const handleShareToApp = async () => {
     if (!diary) return;
 
     const shareTitle = `${diary.date ? formatDate(diary.date) : '오늘'}의 일기`;
-    const shareText = `${shareTitle}\n\n${diary.content || ''}`;
+
+    setShowShareSheet(false);
 
     // 네이티브 앱인 경우 Capacitor Share 사용
     if (Capacitor.isNativePlatform()) {
@@ -168,7 +193,6 @@ export default function DiaryDetailPage() {
         });
         setToastMessage('공유되었습니다');
       } catch (err: any) {
-        // 사용자가 공유 취소한 경우
         if (err.message?.includes('cancel') || err.message?.includes('dismissed')) {
           return;
         }
@@ -179,7 +203,7 @@ export default function DiaryDetailPage() {
       return;
     }
 
-    // 웹 브라우저: Web Share API 지원 확인
+    // 웹 브라우저: Web Share API 사용
     if (navigator.share) {
       try {
         const shareData: ShareData = {
@@ -205,31 +229,17 @@ export default function DiaryDetailPage() {
         await navigator.share(shareData);
         setToastMessage('공유되었습니다');
       } catch (err: any) {
-        // 사용자가 공유 취소한 경우
         if (err.name === 'AbortError') {
           return;
         }
         console.error('공유 실패:', err);
-        // 공유 실패 시 클립보드로 복사
-        await copyToClipboard(shareText);
+        setToastMessage('공유에 실패했습니다');
       }
     } else {
-      // Web Share API 미지원 시 클립보드로 복사
-      await copyToClipboard(shareText);
+      setToastMessage('이 브라우저에서는 앱 공유를 지원하지 않습니다');
     }
 
     setTimeout(() => setToastMessage(''), 3000);
-  };
-
-  // 클립보드 복사 함수
-  const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setToastMessage('클립보드에 복사되었습니다');
-    } catch (err) {
-      console.error('클립보드 복사 실패:', err);
-      setToastMessage('공유에 실패했습니다');
-    }
   };
 
   // Big5 점수를 퍼센트로 변환 (0-100 기준)
@@ -367,7 +377,7 @@ export default function DiaryDetailPage() {
 
             {/* 공유 버튼 */}
             <button
-              onClick={handleShare}
+              onClick={handleShareClick}
               className="bg-transparent border-0 hover:opacity-70 cursor-pointer"
               style={{ marginTop: '5px', marginLeft: '-9px' }}
             >
@@ -619,6 +629,102 @@ export default function DiaryDetailPage() {
                     </div>
                   ))}
                 </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* 공유 Bottom Sheet */}
+      <AnimatePresence>
+        {showShareSheet && (
+          <div
+            onClick={() => setShowShareSheet(false)}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 10000,
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              display: 'flex',
+              alignItems: 'flex-end',
+            }}
+          >
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ duration: 0.3, ease: 'easeOut' }}
+              className="w-full rounded-t-[24px] overflow-hidden"
+              style={{
+                backgroundColor: 'var(--color-bg-card)',
+                zIndex: 10001,
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* 핸들바 */}
+              <div className="pt-[16px] pb-[8px] flex justify-center">
+                <div
+                  className="w-[40px] h-[4px] rounded-full"
+                  style={{ backgroundColor: '#D1D5DB' }}
+                />
+              </div>
+
+              {/* 제목 */}
+              <h2
+                className="text-[18px] font-[600] text-center mb-[20px]"
+                style={{ color: 'var(--color-text-primary)' }}
+              >
+                공유하기
+              </h2>
+
+              {/* 공유 옵션 */}
+              <div className="px-[20px] pb-[32px] flex flex-col gap-[12px]">
+                {/* 클립보드 복사 */}
+                <button
+                  onClick={handleCopyToClipboard}
+                  className="w-full py-[16px] rounded-[12px] flex items-center justify-center gap-[12px] border-0 hover:opacity-90 transition-opacity"
+                  style={{
+                    backgroundColor: 'rgba(128, 128, 128, 0.1)',
+                    color: 'var(--color-text-primary)',
+                  }}
+                >
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                  </svg>
+                  <span className="text-[15px] font-[500]">클립보드에 복사</span>
+                </button>
+
+                {/* 앱으로 공유 */}
+                <button
+                  onClick={handleShareToApp}
+                  className="w-full py-[16px] rounded-[12px] flex items-center justify-center gap-[12px] border-0 hover:opacity-90 transition-opacity"
+                  style={{
+                    backgroundColor: '#5E7057',
+                    color: '#FFFFFF',
+                  }}
+                >
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="18" cy="5" r="3"></circle>
+                    <circle cx="6" cy="12" r="3"></circle>
+                    <circle cx="18" cy="19" r="3"></circle>
+                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                  </svg>
+                  <span className="text-[15px] font-[500]">다른 앱으로 공유</span>
+                </button>
+
+                {/* 취소 */}
+                <button
+                  onClick={() => setShowShareSheet(false)}
+                  className="w-full py-[14px] rounded-[12px] border-0 hover:opacity-90 transition-opacity mt-[4px]"
+                  style={{
+                    backgroundColor: 'transparent',
+                    color: 'var(--color-text-secondary)',
+                  }}
+                >
+                  <span className="text-[14px]">취소</span>
+                </button>
               </div>
             </motion.div>
           </div>
