@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 import { ROUTES } from "../constants/routes";
 import { EMOTION_COLORS, EMOTION_EMOJIS } from "../constants/emotionColors";
 import { useSendChatMessage } from "../hooks/useApi";
@@ -43,6 +44,31 @@ export default function ChatPage() {
 
   // React Query mutations
   const sendMessageMutation = useSendChatMessage();
+
+  // 음성 인식
+  const {
+    transcript,
+    listening,
+    resetTranscript,
+    browserSupportsSpeechRecognition
+  } = useSpeechRecognition();
+
+  // 음성 인식 결과를 입력창에 반영
+  useEffect(() => {
+    if (transcript) {
+      setInputValue(transcript);
+    }
+  }, [transcript]);
+
+  // 음성 인식 토글
+  const toggleListening = () => {
+    if (listening) {
+      SpeechRecognition.stopListening();
+    } else {
+      resetTranscript();
+      SpeechRecognition.startListening({ language: 'ko-KR', continuous: true });
+    }
+  };
 
   const todayLabel = new Date().toLocaleDateString("ko-KR", {
     year: "numeric",
@@ -427,6 +453,8 @@ export default function ChatPage() {
           <div style={{ display: 'flex', alignItems: 'center', padding: '12px 16px', gap: '8px' }}>
             {/* 음성 버튼 */}
             <button
+              onClick={toggleListening}
+              disabled={!browserSupportsSpeechRecognition}
               className="hover:opacity-90 transition-all active:scale-93 border-0"
               style={{
                 width: '40px',
@@ -435,13 +463,17 @@ export default function ChatPage() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                backgroundColor: listening ? '#EF4444' : 'rgba(0, 0, 0, 0.6)',
                 borderRadius: '12px',
-                color: 'white'
+                color: 'white',
+                animation: listening ? 'pulse 1.5s infinite' : 'none'
               }}
-              aria-label="음성 입력"
+              aria-label={listening ? "음성 인식 중지" : "음성 입력"}
+              title={!browserSupportsSpeechRecognition ? "이 브라우저에서 음성 인식을 지원하지 않습니다" : ""}
             >
-              <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>mic</span>
+              <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>
+                {listening ? 'mic' : 'mic'}
+              </span>
             </button>
 
             {/* 입력창 */}
