@@ -424,15 +424,15 @@ export default function ChatPage() {
         <div ref={messagesEndRef} /></div>
 
           {/* 입력 영역 */}
-          <div className="bg-white flex items-center" style={{ paddingLeft: '16px', paddingRight: '16px', paddingTop: '12px', paddingBottom: '12px', gap: '8px' }}>
+          <div className="bg-white flex items-center" style={{ paddingLeft: '16px', paddingRight: '16px', paddingTop: '12px', paddingBottom: '12px', gap: '12px' }}>
             <button
-              className="flex items-center justify-center text-[white] hover:opacity-90 transition-all active:scale-93 border-0"
+              className="flex-shrink-0 flex items-center justify-center text-[white] hover:opacity-90 transition-all active:scale-93 border-0"
               style={{ width: '40px', height: '40px', backgroundColor: 'rgba(0, 0, 0, 0.6)', borderRadius: '12px' }}
               aria-label="음성 입력"
             >
               <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>mic</span>
             </button>
-            <div className="flex-1 relative">
+            <div className="flex-1 min-w-0 relative">
               <input
                 type="text"
                 value={inputValue}
@@ -453,8 +453,8 @@ export default function ChatPage() {
             <button
               onClick={handleSendMessage}
               disabled={!inputValue.trim() || isAITyping}
-              className="text-[white] text-sm font-medium hover:opacity-90 transition-all active:scale-93 disabled:opacity-50 disabled:cursor-not-allowed border-0"
-              style={{ paddingLeft: '24px', paddingRight: '24px', paddingTop: '11px', paddingBottom: '11px', backgroundColor: '#000000', borderRadius: '12px', opacity: 1 }}
+              className="flex-shrink-0 text-[white] text-sm font-medium hover:opacity-90 transition-all active:scale-93 disabled:opacity-50 disabled:cursor-not-allowed border-0"
+              style={{ paddingLeft: '24px', paddingRight: '24px', paddingTop: '11px', paddingBottom: '11px', backgroundColor: '#000000', borderRadius: '12px' }}
             >
               전송
             </button>
