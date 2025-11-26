@@ -454,14 +454,15 @@ export default function ChatPage() {
                 placeholder="메시지를 입력하세요..."
                 disabled={isAITyping}
                 maxLength={1000}
-                className="border border-gray-300 rounded-[12px] text-sm focus:outline-none focus:border-[#5F6F52] disabled:bg-gray-100 disabled:text-gray-400"
+                className="rounded-[12px] text-sm focus:outline-none disabled:bg-gray-100 disabled:text-gray-400"
                 style={{
                   width: '100%',
                   boxSizing: 'border-box',
                   paddingLeft: '16px',
                   paddingRight: '16px',
-                  paddingTop: '11px',
-                  paddingBottom: '11px'
+                  paddingTop: '9px',
+                  paddingBottom: '9px',
+                  border: '1px solid #D1D5DB'
                 }}
               />
               {inputValue.length > 900 && (
