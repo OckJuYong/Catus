@@ -154,6 +154,12 @@ export default function Big5StatsPage() {
     enabled: !!currentData,
   });
 
+  // BIG5 데이터 디버깅용 console.log
+  console.log('[BIG5] currentData:', currentData);
+  console.log('[BIG5] historyData:', historyData);
+  console.log('[BIG5] scores:', currentData?.scores);
+  console.log('[BIG5] isLoading:', isLoading, 'error:', error);
+
   // 로딩 중
   if (isLoading) {
     return (

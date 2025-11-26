@@ -16,25 +16,25 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
   {
     id: 2,
     target: ".cactus-group",
-    message: "선인장을 클릭하면 Big5 성향분석을 볼 수 있어요",
+    message: "선인장을 클릭하면 성향분석을 볼 수 있어요",
     position: "bottom"
   },
   {
     id: 3,
     target: ".diary-book",
-    message: "일기장을 클릭하면 캘린더에서 작성한 일기를 확인할 수 있어요",
+    message: "책을 클릭하면 작성한 일기를 확인할 수 있어요",
     position: "top"
   },
   {
     id: 4,
     target: ".chat-input-bar",
-    message: "채팅버튼을 클릭하면 달이와 대화할 수 있어요",
+    message: "채팅창을 클릭하면 달이와 대화할 수 있어요",
     position: "top"
   },
   {
     id: 5,
     target: null,
-    message: "자, 이제 시작해볼까요? 오늘 하루는 어땠나요?",
+    message: "자, 이제 시작해볼까요? \n 오늘 하루는 어땠나요?",
     position: "center"
   }
 ];
