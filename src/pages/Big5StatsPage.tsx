@@ -328,24 +328,14 @@ export default function Big5StatsPage() {
             className="text-[14px] font-[600] mb-[8px]"
             style={{ color: 'var(--color-text-primary)' }}
           >
-            자동 업데이트 시스템
+            성격 분석 결과
           </h3>
           <p
-            className="text-[13px] leading-relaxed"
+            className="text-[13px] leading-relaxed whitespace-pre-line"
             style={{ color: 'var(--color-text-secondary)' }}
           >
-            일기를 작성할 때마다 AI가 당신의 성격 변화를 분석하고,
-            매주 자동으로 BIG5 점수를 업데이트합니다.
-            (최대 변화: 주당 0.15점)
+            {currentData.analysis || '일기를 작성할 때마다 AI가 당신의 성격 변화를 분석합니다.'}
           </p>
-          {currentData.lastUpdated && (
-            <p
-              className="text-[11px] mt-[8px]"
-              style={{ color: 'var(--color-text-secondary)' }}
-            >
-              마지막 업데이트: {new Date(currentData.lastUpdated).toLocaleDateString('ko-KR')}
-            </p>
-          )}
         </div>
       </div>
     </div>
