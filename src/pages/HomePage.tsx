@@ -6,7 +6,7 @@ import { ROUTES } from "../constants/routes";
 import { useTutorial } from "../contexts/TutorialContext";
 import { useDarkMode } from "../contexts/DarkModeContext";
 import { useLocalStorage } from "../hooks/useLocalStorage";
-import { messageApi } from "../utils/api";
+import { messageApi, settingsApi, chatApi } from "../utils/api";
 import Tutorial from "./Tutorial";
 import api from "../utils/api";
 
@@ -85,6 +85,53 @@ export default function HomePage({ hideButtons = false, backgroundOnly = false }
 
     checkBig5Data();
   }, [backgroundOnly, navigate]);
+
+  // ====== 자동 주간 채팅 분석 (BIG5 업데이트 + 그림일기 생성) ======
+  useEffect(() => {
+    if (backgroundOnly) return;
+
+    const runWeeklyAnalysis = async () => {
+      try {
+        // 1. 설정에서 일기 생성 시간 가져오기
+        const settings = await settingsApi.getSettings();
+        const targetTime = settings.diaryGenerationTime || '22:00';
+
+        // 2. 마지막 실행일 체크 (중복 방지)
+        const lastRun = localStorage.getItem('lastWeeklyAnalysis');
+        const today = new Date();
+        const todayStr = today.toISOString().split('T')[0];
+
+        // 3. 현재 시간이 설정 시간 이후인지 체크
+        const [hour, minute] = targetTime.split(':').map(Number);
+        const targetDate = new Date();
+        targetDate.setHours(hour, minute, 0, 0);
+
+        const shouldRun = today >= targetDate && lastRun !== todayStr;
+
+        console.log('[자동분석] 설정 시간:', targetTime, '| 마지막 실행:', lastRun, '| 오늘:', todayStr, '| 실행여부:', shouldRun);
+
+        if (shouldRun) {
+          // 4. 일주일 전 ~ 오늘 기간 계산
+          const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+          const startDate = weekAgo.toISOString().split('T')[0];
+          const endDate = todayStr;
+
+          console.log('[자동분석] 분석 시작:', startDate, '~', endDate);
+
+          // 5. 채팅 분석 API 호출 (BIG5 업데이트 + 그림일기 생성)
+          const result = await chatApi.analyzeChat(startDate, endDate);
+          console.log('[자동분석] 분석 완료:', result);
+
+          // 6. 마지막 실행일 저장
+          localStorage.setItem('lastWeeklyAnalysis', todayStr);
+        }
+      } catch (error) {
+        console.error('[자동분석] 오류:', error);
+      }
+    };
+
+    runWeeklyAnalysis();
+  }, [backgroundOnly]);
 
   // ====== 현재 활성화된 튜토리얼 체크 (동시에 하나만) ======
   const isAnyTutorialActive = showTutorial || showSupportTutorial || showAirplaneTutorial;
