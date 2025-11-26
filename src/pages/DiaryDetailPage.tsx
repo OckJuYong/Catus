@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Capacitor } from '@capacitor/core';
+import { Share } from '@capacitor/share';
 import { ROUTES } from '../constants/routes';
 import { diaryApi, messageApi } from '../utils/api';
 import { useDarkMode } from '../contexts/DarkModeContext';
@@ -153,13 +155,35 @@ export default function DiaryDetailPage() {
   const handleShare = async () => {
     if (!diary) return;
 
-    const shareText = `${diary.date ? formatDate(diary.date) : '오늘'}의 일기\n\n${diary.content || ''}`;
+    const shareTitle = `${diary.date ? formatDate(diary.date) : '오늘'}의 일기`;
+    const shareText = `${shareTitle}\n\n${diary.content || ''}`;
 
-    // Web Share API 지원 확인
+    // 네이티브 앱인 경우 Capacitor Share 사용
+    if (Capacitor.isNativePlatform()) {
+      try {
+        await Share.share({
+          title: shareTitle,
+          text: diary.content || '',
+          dialogTitle: '일기 공유하기',
+        });
+        setToastMessage('공유되었습니다');
+      } catch (err: any) {
+        // 사용자가 공유 취소한 경우
+        if (err.message?.includes('cancel') || err.message?.includes('dismissed')) {
+          return;
+        }
+        console.error('네이티브 공유 실패:', err);
+        setToastMessage('공유에 실패했습니다');
+      }
+      setTimeout(() => setToastMessage(''), 3000);
+      return;
+    }
+
+    // 웹 브라우저: Web Share API 지원 확인
     if (navigator.share) {
       try {
         const shareData: ShareData = {
-          title: `${diary.date ? formatDate(diary.date) : '오늘'}의 일기`,
+          title: shareTitle,
           text: diary.content || '',
         };
 
