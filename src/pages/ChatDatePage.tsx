@@ -6,48 +6,6 @@ import { chatApi } from '../utils/api';
 import { formatDate } from '../utils/dateFormat';
 import { useDarkMode } from '../contexts/DarkModeContext';
 
-// ============================================================================
-// 🎨 디자인 확인용 더미데이터 - 배포 전 false로 변경 필요
-// ============================================================================
-const USE_MOCK_DATA = false;
-
-const MOCK_CHAT_DATA = {
-  date: '2025-11-26',
-  messages: [
-    {
-      id: 1,
-      userMessage: '오늘 하루 너무 힘들었어 😢',
-      aiResponse: '힘든 하루였구나. 어떤 일이 있었는지 이야기해줄 수 있어? 네 마음을 들어줄게.',
-      timestamp: '2025-11-26T09:30:00',
-    },
-    {
-      id: 2,
-      userMessage: '회사에서 발표를 했는데 긴장해서 실수를 많이 했어. 다들 나를 이상하게 봤을 것 같아.',
-      aiResponse: '발표 중에 실수하면 정말 당황스럽지. 하지만 대부분의 사람들은 발표자의 작은 실수를 크게 신경 쓰지 않아. 오히려 용기 내서 발표한 너 자신을 칭찬해주고 싶어.',
-      timestamp: '2025-11-26T09:32:00',
-    },
-    {
-      id: 3,
-      userMessage: '그래도 자꾸 그 장면이 떠올라서 괴로워',
-      aiResponse: '그런 생각이 반복되는 건 자연스러운 거야. 실수한 순간보다는 잘했던 부분을 떠올려보는 건 어때? 분명 준비하면서 노력한 시간이 있었을 거야.',
-      timestamp: '2025-11-26T09:35:00',
-    },
-    {
-      id: 4,
-      userMessage: '맞아, 밤새 준비했었어. 근데 그게 다 물거품이 된 것 같아서...',
-      aiResponse: '밤새 준비할 만큼 열심히 했구나. 그 노력은 절대 물거품이 아니야. 이번 경험을 통해 다음에는 더 잘할 수 있을 거야. 완벽하지 않아도 괜찮아, 성장하고 있는 거니까 🌱',
-      timestamp: '2025-11-26T09:38:00',
-    },
-    {
-      id: 5,
-      userMessage: '고마워, 네 말 듣고 조금 마음이 편해졌어',
-      aiResponse: '다행이다 💚 오늘 하루 고생 많았어. 오늘 밤은 푹 쉬고, 내일은 새로운 마음으로 시작해보자!',
-      timestamp: '2025-11-26T09:40:00',
-    },
-  ],
-};
-// ============================================================================
-
 export default function ChatDatePage() {
   const navigate = useNavigate();
   const { date } = useParams<{ date: string }>();
@@ -57,14 +15,10 @@ export default function ChatDatePage() {
   const { data: chatData, isLoading, error } = useQuery({
     queryKey: ['chat', 'context', date],
     queryFn: async () => {
-      // 🎨 더미데이터 사용 시
-      if (USE_MOCK_DATA) {
-        return MOCK_CHAT_DATA;
-      }
       if (!date) throw new Error('날짜가 필요합니다.');
       return await chatApi.getContextByDate(date);
     },
-    enabled: !!date || USE_MOCK_DATA,
+    enabled: !!date,
     retry: 2,
   });
 
