@@ -270,6 +270,13 @@ export default function Big5StatsPage() {
           <div className="flex justify-center items-center">
             <RadarChart scores={scores} isDarkMode={isDarkMode} />
           </div>
+          {/* 성격 분석 결과 */}
+          <p
+            className="text-[13px] leading-relaxed whitespace-pre-line mt-[16px] text-center"
+            style={{ color: 'var(--color-text-secondary)' }}
+          >
+            {currentData.analysis?.replace(/^당신의 성격 분석 결과입니다\.\n\n?/, '') || '일기를 작성할 때마다 AI가 당신의 성격 변화를 분석합니다.'}
+          </p>
         </div>
 
         {/* 성격 특성 바 그래프 */}
@@ -319,24 +326,6 @@ export default function Big5StatsPage() {
           </div>
         </div>
 
-        {/* 업데이트 정보 */}
-        <div
-          className="rounded-[16px] p-[16px]"
-          style={{ backgroundColor: 'var(--color-bg-card)' }}
-        >
-          <h3
-            className="text-[14px] font-[600] mb-[8px]"
-            style={{ color: 'var(--color-text-primary)' }}
-          >
-            성격 분석 결과
-          </h3>
-          <p
-            className="text-[13px] leading-relaxed whitespace-pre-line"
-            style={{ color: 'var(--color-text-secondary)' }}
-          >
-            {currentData.analysis?.replace(/^당신의 성격 분석 결과입니다\.\n\n?/, '') || '일기를 작성할 때마다 AI가 당신의 성격 변화를 분석합니다.'}
-          </p>
-        </div>
       </div>
     </div>
   );
