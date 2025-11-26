@@ -205,11 +205,7 @@ export default function ChatPage() {
 
   // 닫기
   const handleClose = (): void => {
-    if (messages.length > 1) {
-      setShowEmotionModal(true);
-    } else {
-      navigate(ROUTES.HOME);
-    }
+    navigate(ROUTES.HOME);
   };
 
   // 감정 선택 및 일기 생성
