@@ -59,14 +59,17 @@ export default function HomePage({ hideButtons = false, backgroundOnly = false }
 
   // ====== 백엔드 API로 unreadCount 조회 ======
   const { data: messagesData } = useQuery({
-    queryKey: ['messages', 'received'],
-    queryFn: () => messageApi.getReceived(0, 1),
-    enabled: !backgroundOnly,
-    refetchInterval: 30000,
-  });
+  queryKey: ['messages', 'received'],
+  queryFn: () => messageApi.getReceived(0, 20), // 최근 20개 메시지 조회
+  enabled: !backgroundOnly,
+  refetchInterval: 30000,
+});
 
-  const unreadCount = messagesData?.unreadCount || 0;
-  const hasNewMessage = unreadCount > 0;
+// unreadCount 계산: 백엔드 응답에 unreadCount가 없으면 messages에서 직접 계산
+const unreadCount = messagesData?.unreadCount
+  ?? messagesData?.messages?.filter((m: { read?: boolean; isRead?: boolean }) => m.read === false || m.isRead === false).length
+  ?? 0;
+const hasNewMessage = unreadCount > 0;
 
   // ====== Big5 데이터 확인 ======
   useEffect(() => {
