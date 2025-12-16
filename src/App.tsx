@@ -10,6 +10,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { PrivateRoute } from './components/PrivateRoute';
 import LoginPage from './pages/LoginPage';
 import KakaoCallbackPage from './pages/KakaoCallbackPage';
+import KakaoMobileCallbackPage from './pages/KakaoMobileCallbackPage';
 import OnboardingPage from './pages/OnboardingPage';
 import Onboarding from "./pages/Onboarding";
 import HomePage from './pages/HomePage';
@@ -71,6 +72,7 @@ function App() {
                 {/* Public Routes */}
                 <Route path="/" element={<LoginPage />} />
                 <Route path="/auth/kakao/callback" element={<KakaoCallbackPage />} />
+                <Route path="/auth/kakao/mobile-callback" element={<KakaoMobileCallbackPage />} />
                 <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
 
                 {/* Protected Routes */}

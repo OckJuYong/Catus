@@ -6,10 +6,12 @@ export default function LoginPage() {
   const navigate = useNavigate();
 
   const handleKakaoLogin = (): void => {
-    // 앱에서는 Deep Link용 리다이렉트 URI 사용
     const isNative = Capacitor.isNativePlatform();
+
+    // 네이티브 앱: 모바일 콜백 페이지 사용 (딥링크로 앱 복귀)
+    // 웹: 기존 콜백 페이지 사용
     const redirectUri = isNative
-      ? 'catus://auth/kakao/callback'
+      ? 'https://catus-frontend-umber.vercel.app/auth/kakao/mobile-callback'
       : import.meta.env.VITE_KAKAO_REDIRECT_URI;
 
     const KAKAO_AUTH_URL = `https://kauth.kakao.com/oauth/authorize?client_id=${import.meta.env.VITE_KAKAO_REST_API_KEY}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code`;
