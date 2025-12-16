@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 import { App as CapApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
+import { Browser } from '@capacitor/browser';
 import { AuthProvider } from './contexts/AuthContext';
 import { TutorialProvider } from './contexts/TutorialContext';
 import { DarkModeProvider } from './contexts/DarkModeContext';
@@ -36,13 +37,28 @@ function DeepLinkHandler() {
     if (!Capacitor.isNativePlatform()) return;
 
     // 앱이 Deep Link로 열렸을 때 처리
-    CapApp.addListener('appUrlOpen', (event) => {
+    CapApp.addListener('appUrlOpen', async (event) => {
       console.log('Deep Link URL:', event.url);
+
+      // InAppBrowser 닫기
+      try {
+        await Browser.close();
+      } catch (e) {
+        console.log('Browser close error (might not be open):', e);
+      }
 
       // catus://auth/kakao/callback?code=xxx 형식 처리
       const url = new URL(event.url);
       if (url.host === 'auth' && url.pathname.includes('kakao/callback')) {
         const code = url.searchParams.get('code');
+        const error = url.searchParams.get('error');
+
+        if (error) {
+          console.error('Kakao login error:', error);
+          navigate('/');
+          return;
+        }
+
         if (code) {
           // 카카오 콜백 페이지로 이동 (code 파라미터 포함)
           navigate(`/auth/kakao/callback?code=${code}`);

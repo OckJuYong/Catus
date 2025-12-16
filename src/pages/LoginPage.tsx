@@ -1,11 +1,12 @@
 import { useNavigate } from 'react-router-dom';
 import { Capacitor } from '@capacitor/core';
+import { Browser } from '@capacitor/browser';
 import logincatImage from '../assets/images/logincat.png';
 
 export default function LoginPage() {
   const navigate = useNavigate();
 
-  const handleKakaoLogin = (): void => {
+  const handleKakaoLogin = async (): Promise<void> => {
     const isNative = Capacitor.isNativePlatform();
 
     // 네이티브 앱: 모바일 콜백 페이지 사용 (딥링크로 앱 복귀)
@@ -21,7 +22,13 @@ export default function LoginPage() {
     console.log('Redirect URI:', redirectUri);
     console.log('KAKAO_AUTH_URL:', KAKAO_AUTH_URL);
 
-    window.location.href = KAKAO_AUTH_URL;
+    if (isNative) {
+      // 네이티브: InAppBrowser (Chrome Custom Tabs) 사용
+      await Browser.open({ url: KAKAO_AUTH_URL });
+    } else {
+      // 웹: 기존 방식 유지
+      window.location.href = KAKAO_AUTH_URL;
+    }
   };
 
   return (
