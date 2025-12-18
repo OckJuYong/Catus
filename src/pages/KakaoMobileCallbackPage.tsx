@@ -46,7 +46,10 @@ export default function KakaoMobileCallbackPage() {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ code }),
+          body: JSON.stringify({
+            code,
+            redirectUri: 'https://catus-sage.vercel.app/auth/kakao/mobile-callback'
+          }),
         });
 
         if (!response.ok) {
