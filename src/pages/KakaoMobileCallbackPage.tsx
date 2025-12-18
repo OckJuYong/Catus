@@ -17,19 +17,24 @@ export default function KakaoMobileCallbackPage() {
     const code = searchParams.get('code');
     const error = searchParams.get('error');
 
+    // Android Intent URL 방식 사용 (Chrome Custom Tabs에서 더 안정적)
+    const createIntentUrl = (path: string) => {
+      return `intent://${path}#Intent;scheme=catus;package=com.catus.app;end`;
+    };
+
     if (error) {
       // 에러 발생 시 앱으로 에러 전달
-      window.location.href = `catus://auth/kakao/callback?error=${error}`;
+      window.location.href = createIntentUrl(`auth/kakao/callback?error=${error}`);
       return;
     }
 
     if (code) {
       // 인증 코드를 딥링크로 앱에 전달
       console.log('Redirecting to app with code:', code);
-      window.location.href = `catus://auth/kakao/callback?code=${code}`;
+      window.location.href = createIntentUrl(`auth/kakao/callback?code=${code}`);
     } else {
       // 코드가 없으면 에러 처리
-      window.location.href = `catus://auth/kakao/callback?error=no_code`;
+      window.location.href = createIntentUrl(`auth/kakao/callback?error=no_code`);
     }
   }, [searchParams]);
 
