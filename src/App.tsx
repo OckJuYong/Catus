@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-route
 import { App as CapApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { TutorialProvider } from './contexts/TutorialContext';
 import { DarkModeProvider } from './contexts/DarkModeContext';
 import { ToastProvider } from './contexts/ToastContext';
@@ -31,6 +31,7 @@ import Big5TestPage from './pages/Big5TestPage';
 // Deep Link 처리 컴포넌트
 function DeepLinkHandler() {
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   useEffect(() => {
     // Capacitor 앱에서만 실행
@@ -47,10 +48,9 @@ function DeepLinkHandler() {
         console.log('Browser close error (might not be open):', e);
       }
 
-      // catus://auth/kakao/callback?code=xxx 형식 처리
+      // catus://auth/kakao/callback 형식 처리
       const url = new URL(event.url);
       if (url.host === 'auth' && url.pathname.includes('kakao/callback')) {
-        const code = url.searchParams.get('code');
         const error = url.searchParams.get('error');
 
         if (error) {
@@ -59,8 +59,41 @@ function DeepLinkHandler() {
           return;
         }
 
+        // 토큰이 있으면 직접 로그인 처리 (새로운 방식)
+        const accessToken = url.searchParams.get('accessToken');
+        const refreshToken = url.searchParams.get('refreshToken');
+        const isNewUser = url.searchParams.get('isNewUser') === 'true';
+        const userId = url.searchParams.get('userId');
+
+        if (accessToken && refreshToken && userId) {
+          console.log('Processing direct token login from deep link');
+
+          // 토큰 저장
+          localStorage.setItem('catus_access_token', accessToken);
+          localStorage.setItem('catus_refresh_token', refreshToken);
+          localStorage.setItem('catus_login_type', 'kakao');
+
+          // 사용자 정보 생성 및 저장
+          const userData = {
+            id: parseInt(userId, 10),
+            nickname: '달이집사',
+            diaryTime: '21:00',
+          };
+
+          // AuthContext의 login 함수 호출
+          login(userData);
+
+          console.log('Login successful, navigating to:', isNewUser ? '/onboarding' : '/home');
+
+          // 신규 사용자면 온보딩, 아니면 홈으로 이동
+          navigate(isNewUser ? '/onboarding' : '/home');
+          return;
+        }
+
+        // 기존 방식 (code로 전달받는 경우) - 폴백
+        const code = url.searchParams.get('code');
         if (code) {
-          // 카카오 콜백 페이지로 이동 (code 파라미터 포함)
+          console.log('Fallback: Processing code-based login');
           navigate(`/auth/kakao/callback?code=${code}`);
         }
       }
@@ -70,7 +103,7 @@ function DeepLinkHandler() {
     return () => {
       CapApp.removeAllListeners();
     };
-  }, [navigate]);
+  }, [navigate, login]);
 
   return null;
 }
