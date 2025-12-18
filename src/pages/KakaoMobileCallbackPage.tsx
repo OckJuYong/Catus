@@ -78,16 +78,16 @@ export default function KakaoMobileCallbackPage() {
     processKakaoLogin();
   }, [searchParams]);
 
-  // Intent URL로 앱에 데이터 전달
+  // 커스텀 스킴 URL로 앱에 데이터 전달
   const redirectToApp = (params: Record<string, string>) => {
     const queryString = new URLSearchParams(params).toString();
-    const intentUrl = `intent://auth/kakao/callback?${queryString}#Intent;scheme=catus;package=com.catus.app;end`;
+    const customSchemeUrl = `catus://auth/kakao/callback?${queryString}`;
 
-    console.log('Redirecting with Intent URL');
+    console.log('Redirecting with Custom Scheme URL:', customSchemeUrl);
 
     // 약간의 딜레이 후 리다이렉트 (UI 표시를 위해)
     setTimeout(() => {
-      window.location.href = intentUrl;
+      window.location.href = customSchemeUrl;
     }, 500);
   };
 

@@ -12,7 +12,7 @@ export default function LoginPage() {
     // 네이티브 앱: 모바일 콜백 페이지 사용 (딥링크로 앱 복귀)
     // 웹: 기존 콜백 페이지 사용
     const redirectUri = isNative
-      ? 'https://catus-hhlx22rch-juyongs-projects-ca9f3fd5.vercel.app/auth/kakao/mobile-callback'
+      ? 'https://catus-sage.vercel.app/auth/kakao/mobile-callback'
       : import.meta.env.VITE_KAKAO_REDIRECT_URI;
 
     const KAKAO_AUTH_URL = `https://kauth.kakao.com/oauth/authorize?client_id=${import.meta.env.VITE_KAKAO_REST_API_KEY}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code`;
