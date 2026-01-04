@@ -28,7 +28,7 @@ export const signInWithKakao = async () => {
   // 루트 페이지로 리다이렉트하면 LoginPage에서 세션 감지 후 적절한 페이지로 이동
   const redirectUrl = typeof window !== 'undefined'
     ? window.location.origin
-    : 'https://haruon.vercel.app';
+    : 'https://haruon-original.vercel.app';
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'kakao',
