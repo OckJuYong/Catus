@@ -61,6 +61,8 @@ export interface Database {
           notification_anonymous: boolean;
           notification_diary: boolean;
           dark_mode: boolean;
+          personalized_prompt: string | null;
+          prompt_updated_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -70,6 +72,8 @@ export interface Database {
           notification_anonymous?: boolean;
           notification_diary?: boolean;
           dark_mode?: boolean;
+          personalized_prompt?: string | null;
+          prompt_updated_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -79,6 +83,8 @@ export interface Database {
           notification_anonymous?: boolean;
           notification_diary?: boolean;
           dark_mode?: boolean;
+          personalized_prompt?: string | null;
+          prompt_updated_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };

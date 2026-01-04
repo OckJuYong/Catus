@@ -260,10 +260,19 @@ export const authApi = {
  * 💬 채팅 API
  */
 export const chatApi = {
-  // 메시지 전송
+  // 메시지 전송 (개인화 프롬프트 지원)
   sendMessage: async (content: string): Promise<{ messageId: number; userMessage: string; aiResponse: string; timestamp: string }> => {
     const userId = await getCurrentUserId();
     const today = formatDate(new Date());
+
+    // Get user's personalized prompt
+    const { data: settingsData } = await supabase
+      .from('user_settings')
+      .select('personalized_prompt')
+      .eq('user_id', userId)
+      .single();
+
+    const personalizedPrompt = settingsData?.personalized_prompt || null;
 
     // Get today's chat history for context
     const { data: historyData } = await supabase
@@ -279,8 +288,8 @@ export const chatApi = {
       { role: 'model' as const, parts: [{ text: msg.ai_response }] },
     ]);
 
-    // Get AI response from Gemini
-    const aiResponse = await chatWithGemini(content, chatHistory);
+    // Get AI response from Gemini with personalized prompt
+    const aiResponse = await chatWithGemini(content, chatHistory, personalizedPrompt);
 
     // Save to database
     const { data, error } = await supabase

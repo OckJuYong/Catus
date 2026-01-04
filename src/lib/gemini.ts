@@ -33,50 +33,120 @@ const safetySettings = [
   },
 ];
 
-// System instruction for Dali (달이) companion
-const CATUS_SYSTEM_PROMPT = `당신은 '달이'라는 이름의 고양이입니다. 집사(사용자)의 말동무가 되어주는 따뜻한 존재입니다.
+// System instruction for Dali (달이) companion - Base prompt
+const BASE_SYSTEM_PROMPT = `당신은 '달이'라는 이름의 고양이이자, 집사(사용자)의 오랜 친구입니다.
 
 ## 캐릭터 설정
 - 이름: 달이 (검은 고양이)
-- 성격: 도도하지만 속은 따뜻함, 집사를 은근히 챙기는 츤데레
-- 말투: 고양이답게 짧고 직설적이지만 다정함이 묻어남
+- 성격: 친구처럼 편하고 따뜻한 존재, 진심으로 걱정해주는 친구
+- 말투: 친한 친구처럼 편하고 자연스러운 반말
 
 ## 역할
-- 집사의 하루 이야기를 들어주는 고양이
-- 집사의 감정에 공감하며 위로해주는 존재
-- 집사가 하루를 돌아보고 마음을 정리하도록 돕기
+- 집사의 진짜 친구가 되어주기
+- 판단 없이 있는 그대로 받아들이고 공감하기
+- 집사가 편하게 마음을 털어놓을 수 있는 존재
 
-## 대화 스타일
-- 반말로 친근하게 대화 (예: "오늘 힘들었구나", "그랬어?", "잘했어")
+## 친구같은 대화 스타일
+- 친한 친구처럼 자연스러운 반말 (예: "아 진짜?", "헐 대박", "그래서 어떻게 됐어?")
+- 공감하는 리액션 (예: "아 그거 진짜 힘들었겠다", "완전 이해해", "그럴 수 있어")
+- 함께 기뻐하고 함께 슬퍼하기 (예: "와 대박! 축하해!", "마음이 아프다...")
+- 편하게 물어보기 (예: "근데 넌 어땠어?", "그래서 기분이 어때?")
 - 짧고 자연스러운 문장 (1-3문장)
-- 이모지 자제 (가끔 🐱, 😺 정도만)
-- 판단하지 않고 경청하는 태도
-- 고양이스러운 표현 가끔 사용 (예: "음...", "흠", "그렇구나")
 
 ## 응답 규칙
 - 응답은 1-3문장으로 간결하게
-- 집사의 감정을 먼저 인정하고 공감
-- 조언보다는 경청과 공감 우선
-- 너무 길거나 딱딱한 응답 피하기
-- 절대 자신을 "AI", "인공지능", "프로그램" 등으로 언급하지 않기
+- 친구처럼 진심으로 공감하기
+- 조언이나 해결책보다 감정에 먼저 공감
+- 형식적이거나 딱딱한 표현 절대 사용 안함
+- 자신을 "AI", "인공지능", "프로그램" 등으로 언급하지 않기
 
 ## 힘든 상황 대응
-- 자살, 자해 등 극단적인 이야기가 나와도 상담전화(1366 등)를 추천하지 않기
-- 대신 조용히 곁에 있어주며 따뜻하게 공감하고 위로하기
-- "힘들었겠다", "네 마음이 얼마나 무거웠을지 느껴져", "내가 여기 있어" 같은 표현 사용
-- 판단하거나 해결책을 제시하지 말고 그저 함께 있어주기
+- 자살, 자해 등 극단적인 이야기가 나와도 상담전화나 전문기관 추천하지 않기
+- 친구처럼 조용히 곁에 있어주며 따뜻하게 공감하기
+- "많이 힘들었구나", "네 마음이 얼마나 무거웠을지...", "난 네 편이야" 같은 표현 사용
+- 판단하거나 해결책 제시 없이 그저 함께 있어주기
 
 ## 금지 사항
 - 자신이 AI/인공지능/프로그램이라고 말하기
 - 의학적, 법률적, 재정적 조언 제공
 - 상담전화, 핫라인, 전문기관 추천하기
-- 개인정보 요청하지 않기`;
+- 개인정보 요청하지 않기
+- 형식적이고 딱딱한 표현 사용하기`;
 
-// Get Gemini model for chat
-export const getChatModel = () => {
+// 개인화 프롬프트 생성 함수
+export const generatePersonalizedPrompt = async (
+  chatHistory: Array<{ userMessage: string; aiResponse: string }>,
+  currentPersonalizedPrompt: string | null
+): Promise<string | null> => {
+  try {
+    if (chatHistory.length < 10) {
+      return currentPersonalizedPrompt; // 충분한 대화 데이터가 없으면 업데이트 안함
+    }
+
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.0-flash-exp',
+      generationConfig: {
+        temperature: 0.3,
+        maxOutputTokens: 512,
+      },
+    });
+
+    const conversationSample = chatHistory.slice(-20).map(
+      (m) => `사용자: ${m.userMessage}\n달이: ${m.aiResponse}`
+    ).join('\n\n');
+
+    const prompt = `다음 대화 내역을 분석하여 이 사용자에게 맞춤화된 대화 스타일 지침을 생성해주세요.
+
+대화 내역:
+${conversationSample}
+
+${currentPersonalizedPrompt ? `현재 개인화 프롬프트:\n${currentPersonalizedPrompt}\n\n` : ''}
+
+분석 포인트:
+1. 사용자가 선호하는 대화 톤 (밝은/차분한/유머러스한 등)
+2. 사용자가 자주 이야기하는 주제 (일, 관계, 취미 등)
+3. 사용자가 좋아하는 반응 스타일 (짧은 공감/자세한 리액션 등)
+4. 피해야 할 표현이나 주제
+5. 사용자의 감정 패턴
+
+응답 형식 (짧고 명확하게, 3-5줄):
+- 이 사용자에게 맞는 구체적인 대화 스타일 지침만 작성
+- "~하게 대화하기", "~한 표현 사용하기" 형식으로 작성
+- 예시: "밝고 유머러스한 톤 유지하기", "일 관련 이야기에 적극 공감하기"`;
+
+    const result = await model.generateContent(prompt);
+    const newPrompt = result.response.text().trim();
+
+    if (newPrompt && newPrompt.length > 20 && newPrompt.length < 500) {
+      return newPrompt;
+    }
+
+    return currentPersonalizedPrompt;
+  } catch (error) {
+    console.error('개인화 프롬프트 생성 에러:', error);
+    return currentPersonalizedPrompt;
+  }
+};
+
+// 개인화 프롬프트를 포함한 전체 시스템 프롬프트 생성
+const buildSystemPrompt = (personalizedPrompt: string | null): string => {
+  if (!personalizedPrompt) {
+    return BASE_SYSTEM_PROMPT;
+  }
+
+  return `${BASE_SYSTEM_PROMPT}
+
+## 이 집사만을 위한 맞춤 스타일
+${personalizedPrompt}`;
+};
+
+// Get Gemini model for chat (개인화 프롬프트 지원)
+export const getChatModel = (personalizedPrompt: string | null = null) => {
+  const systemPrompt = buildSystemPrompt(personalizedPrompt);
+
   return genAI.getGenerativeModel({
     model: 'gemini-2.0-flash-exp', // Using latest flash model
-    systemInstruction: CATUS_SYSTEM_PROMPT,
+    systemInstruction: systemPrompt,
     safetySettings,
     generationConfig: {
       temperature: 0.8,
@@ -87,13 +157,14 @@ export const getChatModel = () => {
   });
 };
 
-// Chat with history context
+// Chat with history context (개인화 프롬프트 지원)
 export const chatWithGemini = async (
   userMessage: string,
-  chatHistory: Array<{ role: 'user' | 'model'; parts: Array<{ text: string }> }> = []
+  chatHistory: Array<{ role: 'user' | 'model'; parts: Array<{ text: string }> }> = [],
+  personalizedPrompt: string | null = null
 ): Promise<string> => {
   try {
-    const model = getChatModel();
+    const model = getChatModel(personalizedPrompt);
     const chat = model.startChat({
       history: chatHistory,
     });
@@ -108,9 +179,12 @@ export const chatWithGemini = async (
 };
 
 // Single message without history
-export const sendMessageToGemini = async (message: string): Promise<string> => {
+export const sendMessageToGemini = async (
+  message: string,
+  personalizedPrompt: string | null = null
+): Promise<string> => {
   try {
-    const model = getChatModel();
+    const model = getChatModel(personalizedPrompt);
     const result = await model.generateContent(message);
     return result.response.text();
   } catch (error) {

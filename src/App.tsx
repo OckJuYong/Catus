@@ -11,6 +11,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { usePrefetchData } from './hooks/usePrefetchData';
 import { useDiaryAutoGenerator } from './hooks/useDiaryAutoGenerator';
 import { useBig5ProgressiveUpdate } from './hooks/useBig5ProgressiveUpdate';
+import { usePersonalizedPrompt } from './hooks/usePersonalizedPrompt';
 import { PrivateRoute } from './components/PrivateRoute';
 import LoginPage from './pages/LoginPage';
 import KakaoCallbackPage from './pages/KakaoCallbackPage';
@@ -113,11 +114,12 @@ function DeepLinkHandler() {
   return null;
 }
 
-// 백그라운드 서비스 컴포넌트 (데이터 프리페칭, 일기 자동 생성, BIG5 분석)
+// 백그라운드 서비스 컴포넌트 (데이터 프리페칭, 일기 자동 생성, BIG5 분석, 개인화 프롬프트)
 function BackgroundServices() {
   usePrefetchData();
   useDiaryAutoGenerator();
   useBig5ProgressiveUpdate();
+  usePersonalizedPrompt(); // 개인화 프롬프트 자동 업데이트
   return null;
 }
 
