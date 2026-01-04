@@ -3,12 +3,15 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import catImage from "../assets/images/cat.png";
 import footprintIcon from "../assets/images/footprint.svg";
-import api, { researchApi } from "../utils/api";
+import api, { researchApi, userApi } from "../utils/api";
 import { useToast } from "../contexts/ToastContext";
+import { useAuth } from "../contexts/AuthContext";
+import { supabase } from "../lib/supabase";
 
 export default function OnboardingPage() {
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { user, updateUser } = useAuth();
   const [step, setStep] = useState(0);
   const [messages, setMessages] = useState<Array<{ type: string; text: string }>>([]);
   const [inputText, setInputText] = useState("");
@@ -159,7 +162,29 @@ export default function OnboardingPage() {
         localStorage.setItem('catus_user_nickname', updatedAnswers.nickname || '달이집사');
         localStorage.setItem('catus_onboarding_completed', 'true');
 
-        console.log('✅ 온보딩 정보 저장 완료:', updatedAnswers);
+        console.log('✅ 온보딩 정보 localStorage 저장 완료:', updatedAnswers);
+
+        // Supabase DB에 온보딩 완료 상태 저장
+        if (user?.id) {
+          const { error: updateError } = await supabase
+            .from('users')
+            .update({
+              nickname: updatedAnswers.nickname || '달이집사',
+              onboarding_completed: true,
+            })
+            .eq('id', user.id);
+
+          if (updateError) {
+            console.warn('⚠️ DB 온보딩 업데이트 실패:', updateError);
+          } else {
+            console.log('✅ DB 온보딩 완료 상태 저장 완료');
+            // AuthContext의 user 상태도 업데이트
+            updateUser({
+              nickname: updatedAnswers.nickname || '달이집사',
+              onboardingCompleted: true
+            });
+          }
+        }
 
         // 🔬 연구용: DB에 인구통계 저장 (비동기, 실패해도 계속 진행)
         const livingTypeMap: Record<string, string> = {
