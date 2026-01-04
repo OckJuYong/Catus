@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import catImage from "../assets/images/cat.png";
 import footprintIcon from "../assets/images/footprint.svg";
-import api from "../utils/api";
+import api, { researchApi } from "../utils/api";
 import { useToast } from "../contexts/ToastContext";
 
 export default function OnboardingPage() {
@@ -18,47 +18,38 @@ export default function OnboardingPage() {
   const [userAnswers, setUserAnswers] = useState<{
     gender?: string;
     ageGroup?: string;
-    occupation?: string;
+    livingType?: string;
     nickname?: string;
-    purpose?: string;
   }>({});
 
+  // 4단계 하이브리드: 필수 정보만 온보딩에서, 나머지는 대화에서 자연스럽게
   const steps = [
     {
       id: 0,
       question: "(달이가 멀찍이서 지켜본다)\n달이가 집사의 성별을 궁금해 한다.",
-      options: ["여자", "남자"],
+      options: ["여성", "남성"],
       field: "gender"
     },
     {
       id: 1,
-      question: "(달이가 관심을 가진다)\n연령을 선택해주세요.",
+      question: "(달이가 관심을 가진다)\n연령대를 알려줘!",
       options: ["10대", "20대", "30대", "40대 이상"],
       field: "ageGroup"
     },
     {
       id: 2,
-      question: "(달이가 가까이 다가온다)\n당신은…?",
-      options: ["학생", "직장인", "기타"],
-      field: "occupation"
+      question: "(달이가 코를 킁킁거린다)\n어떻게 살고 있어?",
+      options: ["혼자 살아요", "가족과 함께", "룸메/기숙사"],
+      field: "livingType"
     },
     {
       id: 3,
       sequence: [
         "(달이가 경계를 풀고 옆에 앉는다.)",
-        "집사님의 이름을 알려주세요!",
+        "집사님 이름이 뭐야?",
       ],
       input: true,
       field: "nickname"
-    },
-    {
-      id: 4,
-      sequence: [
-        "(달이가 만족스럽게 골골거린다)",
-        "나랑 어떤 이야기를 하고 싶어?",
-      ],
-      input: true,
-      field: "purpose"
     },
   ];
 
@@ -161,24 +152,36 @@ export default function OnboardingPage() {
       setIsLoading(true);
 
       try {
-        // localStorage에 사용자 정보 저장 (성별, 연령, 직업, 목적)
+        // localStorage에 사용자 정보 저장
         localStorage.setItem('catus_user_gender', updatedAnswers.gender || '');
         localStorage.setItem('catus_user_age_group', updatedAnswers.ageGroup || '');
-        localStorage.setItem('catus_user_occupation', updatedAnswers.occupation || '');
-        localStorage.setItem('catus_user_purpose', updatedAnswers.purpose || '');
-
-        // 닉네임을 localStorage에도 저장
+        localStorage.setItem('catus_user_living_type', updatedAnswers.livingType || '');
         localStorage.setItem('catus_user_nickname', updatedAnswers.nickname || '달이집사');
-
-        // 온보딩 완료 표시
         localStorage.setItem('catus_onboarding_completed', 'true');
 
         console.log('✅ 온보딩 정보 저장 완료:', updatedAnswers);
 
-        // 3.5초 후 홈으로 이동
+        // 🔬 연구용: DB에 인구통계 저장 (비동기, 실패해도 계속 진행)
+        const livingTypeMap: Record<string, string> = {
+          '혼자 살아요': '1인가구',
+          '가족과 함께': '가족동거',
+          '룸메/기숙사': '기숙사/룸메',
+        };
+
+        researchApi.saveDemographics({
+          ageGroup: updatedAnswers.ageGroup || '20대',
+          gender: updatedAnswers.gender || '비공개',
+          livingType: livingTypeMap[updatedAnswers.livingType || ''] || '기타',
+        }).then(() => {
+          console.log('📊 인구통계 DB 저장 완료');
+        }).catch((err) => {
+          console.warn('인구통계 DB 저장 실패 (무시됨):', err);
+        });
+
+        // 3초 후 홈으로 이동 (단축)
         setTimeout(() => {
           navigate('/home');
-        }, 3500);
+        }, 3000);
       } catch (error: any) {
         console.error('온보딩 저장 실패:', error);
         setIsLoading(false);
@@ -323,7 +326,7 @@ export default function OnboardingPage() {
 
         {/* 진행 단계 텍스트 */}
         <p className="text-sm sm:text-base font-medium text-center" style={{ color: 'var(--color-text-primary)' }}>
-          Step {step + 1}/5 - 달이에게 당신을 알려주세요
+          Step {step + 1}/4 - 달이에게 당신을 알려주세요
         </p>
       </div>
 
@@ -336,8 +339,8 @@ export default function OnboardingPage() {
           style={{ position: "fixed", top: "50%", left: "50%", zIndex: 0 }}
           initial={{ scale: 0.6, opacity: 0.3, x: "-50%", y: "-50%" }}
           animate={{
-            scale: step === 0 ? 0.6 : step === 1 ? 0.75 : step === 2 ? 0.9 : step === 3 ? 1.0 : 1.1,
-            opacity: step === 0 ? 0.3 : step === 1 ? 0.45 : step === 2 ? 0.65 : step === 3 ? 0.85 : 1,
+            scale: step === 0 ? 0.6 : step === 1 ? 0.75 : step === 2 ? 0.9 : 1.1,
+            opacity: step === 0 ? 0.3 : step === 1 ? 0.5 : step === 2 ? 0.75 : 1,
             x: "-50%",
             y: "-50%",
           }}

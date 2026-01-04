@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 import { App as CapApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
@@ -8,6 +8,9 @@ import { TutorialProvider } from './contexts/TutorialContext';
 import { DarkModeProvider } from './contexts/DarkModeContext';
 import { ToastProvider } from './contexts/ToastContext';
 import ErrorBoundary from './components/ErrorBoundary';
+import { usePrefetchData } from './hooks/usePrefetchData';
+import { useDiaryAutoGenerator } from './hooks/useDiaryAutoGenerator';
+import { useBig5ProgressiveUpdate } from './hooks/useBig5ProgressiveUpdate';
 import { PrivateRoute } from './components/PrivateRoute';
 import LoginPage from './pages/LoginPage';
 import KakaoCallbackPage from './pages/KakaoCallbackPage';
@@ -27,6 +30,8 @@ import SettingsPage from './pages/SettingsPage';
 import RandomDiaryPage from './pages/RandomDiaryPage';
 import Big5StatsPage from './pages/Big5StatsPage';
 import Big5TestPage from './pages/Big5TestPage';
+import GeneralLoginPage from './pages/GeneralLoginPage';
+import GeneralSignupPage from './pages/GeneralSignupPage';
 
 // Deep Link 처리 컴포넌트
 function DeepLinkHandler() {
@@ -108,6 +113,14 @@ function DeepLinkHandler() {
   return null;
 }
 
+// 백그라운드 서비스 컴포넌트 (데이터 프리페칭, 일기 자동 생성, BIG5 분석)
+function BackgroundServices() {
+  usePrefetchData();
+  useDiaryAutoGenerator();
+  useBig5ProgressiveUpdate();
+  return null;
+}
+
 function App() {
   return (
     <ErrorBoundary>
@@ -117,9 +130,12 @@ function App() {
             <TutorialProvider>
               <Router>
               <DeepLinkHandler />
+              <BackgroundServices />
               <Routes>
                 {/* Public Routes */}
                 <Route path="/" element={<LoginPage />} />
+                <Route path="/auth/login" element={<GeneralLoginPage />} />
+                <Route path="/auth/signup" element={<GeneralSignupPage />} />
                 <Route path="/auth/kakao/callback" element={<KakaoCallbackPage />} />
                 <Route path="/auth/kakao/mobile-callback" element={<KakaoMobileCallbackPage />} />
                 <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />

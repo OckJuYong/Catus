@@ -129,6 +129,7 @@ export interface DiaryDetailResponse {
   imageUrl?: string;
   image?: string; // 백엔드 실제 필드명
   emotion?: Emotion;
+  isPublic?: boolean; // 공개 여부
   big5Scores?: {
     openness: number;
     conscientiousness: number;
@@ -137,12 +138,14 @@ export interface DiaryDetailResponse {
     neuroticism: number;
   };
   createdAt?: string;
+  updatedAt?: string;
 }
 
 // 백엔드: PUT /api/diary/{id} 요청
 export interface DiaryUpdateData {
   title?: string;
   content?: string;
+  isPublic?: boolean; // 공개 여부
 }
 
 // 백엔드: GET /api/diary/random 응답

@@ -1,33 +1,47 @@
-import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
+import { useAuth } from '../contexts/AuthContext';
 import logincatImage from '../assets/images/logincat.png';
 
 export default function LoginPage() {
+  const { signInWithKakao, isAuthenticated, isLoading, user } = useAuth();
   const navigate = useNavigate();
+
+  // 이미 로그인된 사용자는 홈으로 리다이렉트
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      console.log('이미 로그인됨, 홈으로 이동');
+      // 온보딩 완료 여부에 따라 분기
+      if (user?.onboardingCompleted) {
+        navigate('/home', { replace: true });
+      } else {
+        navigate('/onboarding', { replace: true });
+      }
+    }
+  }, [isAuthenticated, isLoading, user, navigate]);
+
+  // 로딩 중일 때 스피너 표시
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--color-main-bg)' }}>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#59B464]"></div>
+      </div>
+    );
+  }
 
   const handleKakaoLogin = async (): Promise<void> => {
     const isNative = Capacitor.isNativePlatform();
 
-    // 네이티브 앱: 모바일 콜백 페이지 사용 (딥링크로 앱 복귀)
-    // 웹: 기존 콜백 페이지 사용
-    const redirectUri = isNative
-      ? 'https://catus-sage.vercel.app/auth/kakao/mobile-callback'
-      : import.meta.env.VITE_KAKAO_REDIRECT_URI;
-
-    const KAKAO_AUTH_URL = `https://kauth.kakao.com/oauth/authorize?client_id=${import.meta.env.VITE_KAKAO_REST_API_KEY}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code`;
-
-    console.log('카카오 로그인 시작');
+    console.log('카카오 로그인 시작 (Supabase Auth)');
     console.log('Platform:', isNative ? 'Native App' : 'Web');
-    console.log('Redirect URI:', redirectUri);
-    console.log('KAKAO_AUTH_URL:', KAKAO_AUTH_URL);
 
-    if (isNative) {
-      // 네이티브: InAppBrowser (Chrome Custom Tabs) 사용
-      await Browser.open({ url: KAKAO_AUTH_URL });
-    } else {
-      // 웹: 기존 방식 유지
-      window.location.href = KAKAO_AUTH_URL;
+    try {
+      // Supabase OAuth를 통한 카카오 로그인
+      await signInWithKakao();
+    } catch (error) {
+      console.error('카카오 로그인 실패:', error);
     }
   };
 
@@ -78,6 +92,32 @@ export default function LoginPage() {
             카카오로 시작하기
           </span>
         </button>
+
+        {/* 구분선 */}
+        <div className="flex items-center w-[250px] sm:w-[350px] my-4">
+          <div className="flex-1 border-t" style={{ borderColor: 'var(--color-text-secondary)', opacity: 0.3 }}></div>
+          <span className="px-3 text-[12px]" style={{ color: 'var(--color-text-secondary)' }}>또는</span>
+          <div className="flex-1 border-t" style={{ borderColor: 'var(--color-text-secondary)', opacity: 0.3 }}></div>
+        </div>
+
+        {/* 일반 로그인 버튼 */}
+        <Link
+          to="/auth/login"
+          className="w-[250px] sm:w-[350px] py-[17px] bg-[#59B464] hover:bg-[#4a9d54] active:bg-[#4a9d54]
+             rounded-[8px] flex items-center justify-center gap-1 transition-all shadow-sm border-0 text-white no-underline"
+        >
+          <svg
+            className="w-[30px] h-[20px] sm:w-[15px] sm:h-[15px]"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+          </svg>
+          <span className="text-[17px] sm:text-sm font-[600]">
+            일반 로그인
+          </span>
+        </Link>
 
         {/* 개인정보처리방침 링크 */}
         <div className="text-center mt-[30px]">

@@ -57,3 +57,5 @@ backups/
 
 # Large analysis files
 COMPREHENSIVE_*.md
+
+.vercel

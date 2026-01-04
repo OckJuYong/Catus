@@ -59,6 +59,8 @@ export default function DiaryDetailPage() {
   useEffect(() => {
     if (diary) {
       setEditedContent(diary.content || '');
+      // isPublic의 반대값으로 isPrivate 설정 (공개=false일 때 비공개=true)
+      setIsPrivate(!diary.isPublic);
     }
   }, [diary]);
 
@@ -102,13 +104,37 @@ export default function DiaryDetailPage() {
     },
   });
 
+  // 공개/비공개 토글 Mutation (백엔드: PUT /api/diary/{id})
+  const privacyMutation = useMutation({
+    mutationFn: async (newIsPublic: boolean) => {
+      if (!diaryId) throw new Error('일기 ID가 필요합니다.');
+      return await diaryApi.update(diaryId, { isPublic: newIsPublic });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['diary', 'detail', diaryId] });
+      queryClient.invalidateQueries({ queryKey: ['diary', 'list'] });
+    },
+    onError: (error: any) => {
+      console.error('공개 설정 변경 실패:', error);
+      // 실패 시 상태 롤백
+      setIsPrivate(!isPrivate);
+      setToastMessage('공개 설정 변경에 실패했습니다');
+      setTimeout(() => setToastMessage(''), 3000);
+    },
+  });
+
   const formatDate = (dateStr: string): string => {
     const [year, month, day] = dateStr.split('-');
     return `${year}년 ${parseInt(month)}월 ${parseInt(day)}일`;
   };
 
   const handlePrivateToggle = (): void => {
+    if (privacyMutation.isPending) return; // 중복 요청 방지
+
     const newPrivateState = !isPrivate;
+    const newIsPublic = !newPrivateState; // isPrivate의 반대가 isPublic
+
+    // 낙관적 업데이트 (UI 즉시 반영)
     setIsPrivate(newPrivateState);
 
     setToastMessage(
@@ -118,6 +144,9 @@ export default function DiaryDetailPage() {
     );
 
     setTimeout(() => setToastMessage(''), 3000);
+
+    // 백엔드에 저장
+    privacyMutation.mutate(newIsPublic);
   };
 
   const handleDeleteClick = (): void => {

@@ -22,13 +22,14 @@ try {
   // Security initialization 건너뛰기 (Capacitor 앱에서 문제 발생)
   // initializeSecurity();
 
-  // Create QueryClient instance
+  // Create QueryClient instance with optimized caching
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
         retry: 1,
         refetchOnWindowFocus: false,
-        staleTime: 5 * 60 * 1000, // 5 minutes
+        staleTime: 30 * 60 * 1000, // 30분 동안 fresh 상태 유지
+        gcTime: 60 * 60 * 1000,    // 1시간 동안 캐시 보관
       },
     },
   });

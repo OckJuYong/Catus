@@ -1,11 +1,12 @@
 /**
  * 인증 컨텍스트
+ * Supabase Auth 기반
  */
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import axios from 'axios';
+import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
+import { supabase, signInWithKakao, signInWithEmail, signUpWithEmail, signOut, getCurrentUser, getSession, onAuthStateChange, customSignUp, customLogin } from '../lib/supabase';
 import type { User } from '../types';
-import { getToken, setToken, removeToken, getRefreshToken, setRefreshToken } from '../utils/storage';
 import { setTokenRefreshCallback } from '../utils/api';
 import { clearAllChatMessages } from '../utils/indexedDB';
 
@@ -18,6 +19,12 @@ interface AuthContextValue {
   updateUser: (updates: Partial<User>) => void;
   getAccessToken: () => string | null;
   refreshAccessToken: () => Promise<string | null>;
+  signInWithKakao: () => Promise<void>;
+  signInWithEmailPassword: (email: string, password: string) => Promise<{ error: string | null }>;
+  signUpWithEmailPassword: (email: string, password: string, nickname?: string) => Promise<{ error: string | null }>;
+  // 커스텀 인증 (username/password)
+  customSignIn: (username: string, password: string) => Promise<{ error: string | null }>;
+  customSignUp: (username: string, password: string, nickname?: string) => Promise<{ error: string | null }>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -34,96 +41,248 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+/**
+ * Convert Supabase user to app User type
+ */
+const convertToAppUser = async (supabaseUser: SupabaseUser): Promise<User> => {
+  console.log('🔄 convertToAppUser 시작:', supabaseUser.id);
+
+  // 먼저 Supabase 유저 메타데이터로 기본 유저 정보 생성
+  const basicUser: User = {
+    id: supabaseUser.id,
+    nickname: supabaseUser.user_metadata?.name || supabaseUser.user_metadata?.full_name || '사용자',
+    profileImage: supabaseUser.user_metadata?.avatar_url || supabaseUser.user_metadata?.picture,
+    email: supabaseUser.email,
+    createdAt: new Date().toISOString(),
+    onboardingCompleted: false,
+  };
+
+  try {
+    // Try to get user profile from database (with timeout)
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('DB query timeout')), 5000)
+    );
+
+    const queryPromise = supabase
+      .from('users')
+      .select('*')
+      .eq('id', supabaseUser.id)
+      .maybeSingle();
+
+    const { data: dbUser, error: selectError } = await Promise.race([queryPromise, timeoutPromise]) as any;
+
+    if (selectError && selectError.code !== 'PGRST116') {
+      console.log('⚠️ DB 조회 실패, 기본 유저 정보 사용:', selectError.message);
+      return basicUser;
+    }
+
+    if (dbUser) {
+      console.log('✅ DB에서 유저 정보 로드:', dbUser.nickname);
+      return {
+        id: dbUser.id,
+        nickname: dbUser.nickname,
+        profileImage: dbUser.profile_image,
+        email: dbUser.email,
+        createdAt: dbUser.created_at,
+        onboardingCompleted: dbUser.onboarding_completed,
+      };
+    }
+
+    // Create new user record if not exists
+    console.log('📝 새 유저 생성 시도...');
+    const newUserData = {
+      id: supabaseUser.id,
+      nickname: basicUser.nickname,
+      email: supabaseUser.email,
+      profile_image: basicUser.profileImage,
+      kakao_id: supabaseUser.user_metadata?.provider_id ? parseInt(supabaseUser.user_metadata.provider_id) : null,
+      onboarding_completed: false,
+    };
+
+    const { data: createdUser, error: insertError } = await supabase
+      .from('users')
+      .upsert(newUserData)
+      .select()
+      .maybeSingle();
+
+    if (insertError) {
+      console.log('⚠️ 유저 생성 실패, 기본 유저 정보 사용:', insertError.message);
+      return basicUser;
+    }
+
+    console.log('✅ 새 유저 생성 완료:', createdUser.nickname);
+    return {
+      id: createdUser.id,
+      nickname: createdUser.nickname,
+      profileImage: createdUser.profile_image,
+      email: createdUser.email,
+      createdAt: createdUser.created_at,
+      onboardingCompleted: createdUser.onboarding_completed,
+    };
+  } catch (error: any) {
+    console.log('⚠️ DB 작업 타임아웃/에러, 기본 유저 정보 사용:', error.message);
+    return basicUser;
+  }
+};
+
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 자동 로그인: JWT 토큰으로 사용자 정보 복원
+  // Initialize auth state
   useEffect(() => {
+    let isMounted = true;
+
     const initAuth = async () => {
-      const accessToken = getToken();
-      const storedUserStr = localStorage.getItem('catus_user');
+      try {
+        console.log('🔐 Auth 초기화 시작...');
+        console.log('🔗 현재 URL:', window.location.href);
+        console.log('🔗 해시:', window.location.hash);
 
-      if (accessToken && storedUserStr) {
-        try {
-          // localStorage의 사용자 정보를 먼저 복원 (즉시 인증 상태 설정)
-          const storedUser = JSON.parse(storedUserStr);
-          setUser(storedUser);
+        // URL 해시에 access_token이 있는지 확인 (OAuth 리다이렉트 후)
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
 
-          // 백그라운드에서 토큰 유효성 검증 (선택적)
-          // /auth/me 엔드포인트가 없을 수 있으므로 실패해도 무시
-          try {
-            const response = await axios.get<User>(
-              `${import.meta.env.VITE_API_BASE_URL}/auth/me`,
-              {
-                headers: { Authorization: `Bearer ${accessToken}` }
-              }
-            );
+        console.log('🎫 토큰 존재 여부:', { hasAccessToken: !!accessToken, hasRefreshToken: !!refreshToken });
 
-            // 서버에서 받은 최신 사용자 정보로 업데이트
-            const userData = response.data;
-            setUser(userData);
-            localStorage.setItem('catus_user', JSON.stringify(userData));
-          } catch (error) {
-            // /auth/me 실패는 무시 (localStorage의 사용자 정보 유지)
-            console.warn('Background token validation failed (continuing with cached user):', error);
+        if (accessToken && refreshToken) {
+          console.log('✅ OAuth 토큰 감지, 세션 설정 중...');
+
+          // 세션 설정
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+
+          // URL에서 해시 제거 (보안) - 세션 설정 후에 제거
+          window.history.replaceState(null, '', window.location.pathname);
+
+          if (error) {
+            console.error('❌ 세션 설정 실패:', error.message, error);
+          } else if (data.session?.user) {
+            console.log('✅ 세션 설정 성공:', data.session.user.id);
+            console.log('👤 유저 메타데이터:', data.session.user.user_metadata);
+
+            if (!isMounted) return;
+
+            setSession(data.session);
+
+            try {
+              const appUser = await convertToAppUser(data.session.user);
+              console.log('✅ 앱 유저 변환 성공:', appUser);
+
+              if (!isMounted) return;
+
+              setUser(appUser);
+              localStorage.setItem('catus_user', JSON.stringify(appUser));
+            } catch (userError) {
+              console.error('❌ 유저 변환 실패:', userError);
+              // 기본 유저 정보로 설정
+              const basicUser = {
+                id: data.session.user.id,
+                nickname: data.session.user.user_metadata?.name || '사용자',
+                profileImage: data.session.user.user_metadata?.avatar_url,
+                email: data.session.user.email,
+                createdAt: new Date().toISOString(),
+                onboardingCompleted: false,
+              };
+              setUser(basicUser);
+              localStorage.setItem('catus_user', JSON.stringify(basicUser));
+            }
+
+            setIsLoading(false);
+            return;
+          } else {
+            console.error('❌ 세션 데이터 없음:', data);
           }
-        } catch (error) {
-          console.error('Failed to parse stored user:', error);
-          // localStorage 파싱 실패 시 로그아웃
-          removeToken();
-          localStorage.removeItem('catus_refresh_token');
+        }
+
+        // Get current session
+        console.log('🔍 기존 세션 확인 중...');
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        console.log('📋 기존 세션:', currentSession ? '있음' : '없음');
+
+        if (currentSession?.user) {
+          if (!isMounted) return;
+
+          setSession(currentSession);
+          const appUser = await convertToAppUser(currentSession.user);
+          setUser(appUser);
+          localStorage.setItem('catus_user', JSON.stringify(appUser));
+          console.log('✅ 기존 세션으로 로그인:', appUser.nickname);
+        } else {
+          // localStorage에서 user만 있고 session이 없으면 로그아웃 처리
+          console.log('⚠️ 세션 없음, localStorage 정리');
           localStorage.removeItem('catus_user');
-          setUser(null);
+        }
+      } catch (error) {
+        console.error('❌ Auth 초기화 에러:', error);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+          console.log('🏁 Auth 초기화 완료');
         }
       }
-
-      setIsLoading(false);
     };
 
     initAuth();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // 초기 마운트 시에만 실행 (refreshAccessToken 의존성 제거로 무한 루프 방지)
 
-  // 액세스 토큰 갱신
+    // Listen for auth state changes
+    const { data: { subscription } } = onAuthStateChange(async (event, newSession) => {
+      console.log('🔔 Auth state changed:', event, newSession?.user?.id);
+
+      if (event === 'SIGNED_IN' && newSession?.user) {
+        console.log('✅ SIGNED_IN 이벤트 수신');
+        setSession(newSession);
+        const appUser = await convertToAppUser(newSession.user);
+        setUser(appUser);
+        localStorage.setItem('catus_user', JSON.stringify(appUser));
+      } else if (event === 'SIGNED_OUT') {
+        console.log('🚪 SIGNED_OUT 이벤트 수신');
+        setSession(null);
+        setUser(null);
+        localStorage.removeItem('catus_user');
+      } else if (event === 'TOKEN_REFRESHED' && newSession) {
+        setSession(newSession);
+        console.log('🔄 Token refreshed automatically by Supabase');
+      } else if (event === 'USER_UPDATED' && newSession?.user) {
+        const appUser = await convertToAppUser(newSession.user);
+        setUser(appUser);
+        localStorage.setItem('catus_user', JSON.stringify(appUser));
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // Token refresh (Supabase handles this automatically, but we expose it for compatibility)
   const refreshAccessToken = async (): Promise<string | null> => {
-    const refreshToken = getRefreshToken();
-
-    if (!refreshToken) {
-      logout();
-      return null;
-    }
-
     try {
-      // 백엔드 응답: { accessToken, refreshToken }
-      const response = await axios.post<{ accessToken: string; refreshToken: string }>(
-        `${import.meta.env.VITE_API_BASE_URL}/auth/refresh`,
-        { refreshToken }
-      );
+      const { data, error } = await supabase.auth.refreshSession();
 
-      const { accessToken, refreshToken: newRefreshToken } = response.data;
+      if (error || !data.session) {
+        console.error('Token refresh failed:', error);
+        return null;
+      }
 
-      // 새 액세스 토큰 및 리프레시 토큰 저장
-      setToken(accessToken);
-      setRefreshToken(newRefreshToken);
-
-      // 사용자 정보는 localStorage에서 유지 (백엔드 응답에 user 정보 없음)
-      // user 상태는 그대로 유지됨
-
+      setSession(data.session);
       console.log('✅ Token refreshed successfully');
-      return accessToken;
+      return data.session.access_token;
     } catch (error) {
       console.error('❌ Token refresh failed:', error);
-      logout();
       return null;
     }
   };
 
-  // API 인터셉터에 토큰 갱신 콜백 등록
+  // Register token refresh callback for API interceptor
   useEffect(() => {
     setTokenRefreshCallback(refreshAccessToken);
 
-    // Cleanup: 컴포넌트 언마운트 시 콜백 제거
     return () => {
       setTokenRefreshCallback(null);
     };
@@ -131,53 +290,41 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   // Cross-tab storage synchronization using BroadcastChannel
   useEffect(() => {
-    // Check BroadcastChannel support
     if (typeof BroadcastChannel === 'undefined') {
-      console.warn('BroadcastChannel not supported in this browser');
       return;
     }
 
     const channel = new BroadcastChannel('catus_auth_channel');
 
-    // Listen for auth events from other tabs
     const handleMessage = (event: MessageEvent) => {
       const { type, payload } = event.data;
 
       switch (type) {
         case 'AUTH_LOGIN':
-          // Another tab logged in, sync user data
           if (payload.user) {
             setUser(payload.user);
           }
           break;
-
         case 'AUTH_LOGOUT':
-          // Another tab logged out, clear local state
           setUser(null);
+          setSession(null);
           break;
-
         case 'AUTH_UPDATE':
-          // Another tab updated user data
           if (payload.user) {
             setUser(payload.user);
           }
-          break;
-
-        default:
           break;
       }
     };
 
     channel.addEventListener('message', handleMessage);
 
-    // Cleanup
     return () => {
       channel.removeEventListener('message', handleMessage);
       channel.close();
     };
   }, []);
 
-  // Broadcast auth changes to other tabs
   const broadcastAuthChange = (type: string, payload?: any) => {
     if (typeof BroadcastChannel !== 'undefined') {
       try {
@@ -190,41 +337,103 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
-  // 로그인
+  // Login (for compatibility with existing code)
   const login = (userData: User): void => {
     setUser(userData);
     localStorage.setItem('catus_user', JSON.stringify(userData));
-
-    // Broadcast login to other tabs
     broadcastAuthChange('AUTH_LOGIN', { user: userData });
   };
 
-  // 로그아웃
-  const logout = async (): Promise<void> => {
-    const accessToken = getToken();
+  // Sign in with Kakao OAuth
+  const handleSignInWithKakao = async (): Promise<void> => {
+    const { error } = await signInWithKakao();
+    if (error) {
+      console.error('Kakao login error:', error);
+      throw error;
+    }
+  };
 
-    // 백엔드에 로그아웃 알림 (선택사항)
-    if (accessToken) {
-      try {
-        await axios.post(
-          `${import.meta.env.VITE_API_BASE_URL}/auth/logout`,
-          {},
-          {
-            headers: { Authorization: `Bearer ${accessToken}` }
-          }
-        );
-      } catch (error) {
-        console.error('Logout request failed:', error);
+  // Sign in with Email/Password
+  const handleSignInWithEmailPassword = async (email: string, password: string): Promise<{ error: string | null }> => {
+    try {
+      const { data, error } = await signInWithEmail(email, password);
+
+      if (error) {
+        console.error('Email login error:', error);
+        if (error.message.includes('Invalid login credentials')) {
+          return { error: '이메일 또는 비밀번호가 올바르지 않습니다.' };
+        }
+        if (error.message.includes('Email not confirmed')) {
+          return { error: '이메일 인증이 필요합니다. 메일함을 확인해주세요.' };
+        }
+        return { error: error.message };
       }
+
+      if (data.session?.user) {
+        setSession(data.session);
+        const appUser = await convertToAppUser(data.session.user);
+        setUser(appUser);
+        localStorage.setItem('catus_user', JSON.stringify(appUser));
+        console.log('✅ Email login successful:', appUser.nickname);
+      }
+
+      return { error: null };
+    } catch (err: any) {
+      console.error('Email login error:', err);
+      return { error: '로그인 중 오류가 발생했습니다.' };
+    }
+  };
+
+  // Sign up with Email/Password
+  const handleSignUpWithEmailPassword = async (email: string, password: string, nickname?: string): Promise<{ error: string | null }> => {
+    try {
+      const { data, error } = await signUpWithEmail(email, password, nickname);
+
+      if (error) {
+        console.error('Email signup error:', error);
+        if (error.message.includes('User already registered')) {
+          return { error: '이미 등록된 이메일입니다.' };
+        }
+        if (error.message.includes('Password should be at least')) {
+          return { error: '비밀번호는 최소 6자 이상이어야 합니다.' };
+        }
+        return { error: error.message };
+      }
+
+      // 이메일 확인 비활성화 시 바로 세션 생성됨
+      // (Supabase 대시보드 → Authentication → Providers → Email → Confirm email OFF)
+
+      // Auto sign in if no email confirmation required
+      if (data.session?.user) {
+        setSession(data.session);
+        const appUser = await convertToAppUser(data.session.user);
+        setUser(appUser);
+        localStorage.setItem('catus_user', JSON.stringify(appUser));
+        console.log('✅ Email signup successful:', appUser.nickname);
+      }
+
+      return { error: null };
+    } catch (err: any) {
+      console.error('Email signup error:', err);
+      return { error: '회원가입 중 오류가 발생했습니다.' };
+    }
+  };
+
+  // Logout
+  const logout = async (): Promise<void> => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Logout error:', error);
     }
 
-    // 로컬 상태 초기화
+    // Clear local state
     setUser(null);
+    setSession(null);
     localStorage.removeItem('catus_user');
-    removeToken();
-    localStorage.removeItem('catus_refresh_token');
+    localStorage.removeItem('catus_login_type'); // 커스텀 인증 정보도 정리
 
-    // IndexedDB 채팅 기록 삭제 (개인정보 보호)
+    // Clear IndexedDB chat messages
     try {
       await clearAllChatMessages();
       console.log('✅ IndexedDB chat messages cleared on logout');
@@ -232,36 +441,110 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       console.error('❌ Failed to clear IndexedDB on logout:', error);
     }
 
-    // Broadcast logout to other tabs
     broadcastAuthChange('AUTH_LOGOUT');
   };
 
-  // 사용자 정보 업데이트
+  // Update user info
   const updateUser = (updates: Partial<User>): void => {
     if (!user) return;
 
     const updatedUser = { ...user, ...updates };
     setUser(updatedUser);
     localStorage.setItem('catus_user', JSON.stringify(updatedUser));
-
-    // Broadcast update to other tabs
     broadcastAuthChange('AUTH_UPDATE', { user: updatedUser });
   };
 
-  // 액세스 토큰 가져오기 (API 호출 시 사용)
+  // Get access token
   const getAccessToken = (): string | null => {
-    return getToken();
+    return session?.access_token || null;
   };
+
+  // ============================================
+  // Custom Auth (Username/Password - Supabase Auth 우회)
+  // ============================================
+
+  // 커스텀 회원가입
+  const handleCustomSignUp = async (username: string, password: string, nickname?: string): Promise<{ error: string | null }> => {
+    try {
+      const result = await customSignUp(username, password, nickname);
+
+      if (!result.success) {
+        return { error: result.error || '회원가입에 실패했습니다.' };
+      }
+
+      if (result.user) {
+        const appUser: User = {
+          id: result.user.id,
+          nickname: result.user.nickname,
+          profileImage: result.user.profileImage,
+          createdAt: new Date().toISOString(),
+          onboardingCompleted: result.user.onboardingCompleted,
+        };
+
+        setUser(appUser);
+        localStorage.setItem('catus_user', JSON.stringify(appUser));
+        localStorage.setItem('catus_login_type', 'custom');
+        broadcastAuthChange('AUTH_LOGIN', { user: appUser });
+        console.log('✅ Custom signup successful:', appUser.nickname);
+      }
+
+      return { error: null };
+    } catch (err: any) {
+      console.error('Custom signup error:', err);
+      return { error: '회원가입 중 오류가 발생했습니다.' };
+    }
+  };
+
+  // 커스텀 로그인
+  const handleCustomSignIn = async (username: string, password: string): Promise<{ error: string | null }> => {
+    try {
+      const result = await customLogin(username, password);
+
+      if (!result.success) {
+        return { error: result.error || '로그인에 실패했습니다.' };
+      }
+
+      if (result.user) {
+        const appUser: User = {
+          id: result.user.id,
+          nickname: result.user.nickname,
+          profileImage: result.user.profileImage,
+          createdAt: new Date().toISOString(),
+          onboardingCompleted: result.user.onboardingCompleted,
+        };
+
+        setUser(appUser);
+        localStorage.setItem('catus_user', JSON.stringify(appUser));
+        localStorage.setItem('catus_login_type', 'custom');
+        broadcastAuthChange('AUTH_LOGIN', { user: appUser });
+        console.log('✅ Custom login successful:', appUser.nickname);
+      }
+
+      return { error: null };
+    } catch (err: any) {
+      console.error('Custom login error:', err);
+      return { error: '로그인 중 오류가 발생했습니다.' };
+    }
+  };
+
+  // 커스텀 로그인 사용자도 인증된 것으로 처리
+  const isCustomAuth = localStorage.getItem('catus_login_type') === 'custom';
+  const isAuthenticatedValue = !!user && (!!session || isCustomAuth);
 
   const value: AuthContextValue = {
     user,
     isLoading,
-    isAuthenticated: !!user,
+    isAuthenticated: isAuthenticatedValue,
     login,
     logout,
     updateUser,
     getAccessToken,
-    refreshAccessToken
+    refreshAccessToken,
+    signInWithKakao: handleSignInWithKakao,
+    signInWithEmailPassword: handleSignInWithEmailPassword,
+    signUpWithEmailPassword: handleSignUpWithEmailPassword,
+    customSignIn: handleCustomSignIn,
+    customSignUp: handleCustomSignUp,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
