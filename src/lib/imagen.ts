@@ -30,43 +30,71 @@ interface GeminiImageResponse {
 
 /**
  * Generate diary illustration using Gemini Image Generation (Nano Banana)
- * Style: 고양이가 그린 것처럼 순수하고 귀여운 유치원생 스타일
+ * Style: 달이(고양이)가 크레용으로 직접 그린 것 같은 투박하고 귀여운 그림
  */
 export const generateDiaryImage = async (
   emotion: string,
   summary: string
 ): Promise<string | null> => {
   try {
-    // Create a prompt based on emotion and summary
-    const emotionStyles: Record<string, string> = {
-      '행복': 'bright sunny yellow, big happy smiles, rainbow colors, hearts and stars',
-      '슬픔': 'soft blue crayon strokes, tiny raindrops, small sad face, comforting clouds',
-      '보통': 'peaceful green grass, simple house, friendly sun, calm day',
-      '화남': 'red scribbles, puffy clouds, pouty expression, thunder shapes',
-      '불안': 'wobbly lines, scattered dots, curly swirls, hiding cat',
+    // 감정별 구체적이고 차별화된 스타일 (고양이가 그린 그림 컨셉)
+    const emotionConfigs: Record<string, { colors: string; elements: string; mood: string }> = {
+      '행복': {
+        colors: 'warm yellow, orange, pink, bright green',
+        elements: 'rainbow, hearts, stars, flowers blooming, sun with happy face, butterflies',
+        mood: 'cheerful, energetic, celebratory'
+      },
+      '슬픔': {
+        colors: 'soft blue, gray, pale purple, muted tones',
+        elements: 'rain drops, clouds, fallen leaves, wilting flower, teardrop shapes',
+        mood: 'gentle, quiet, melancholic but comforting'
+      },
+      '보통': {
+        colors: 'soft green, light blue, beige, cream',
+        elements: 'simple house, tree, floating clouds, coffee cup, peaceful scenery',
+        mood: 'calm, peaceful, ordinary'
+      },
+      '화남': {
+        colors: 'red, orange, dark purple, black accents',
+        elements: 'storm clouds, lightning bolts, scattered scribbles, jagged lines',
+        mood: 'intense but expressed cutely, frustrated'
+      },
+      '불안': {
+        colors: 'pale yellow, gray-blue, lavender, uncertain tones',
+        elements: 'swirling patterns, question marks, tangled lines, wobbly shapes',
+        mood: 'uncertain, worried but seeking comfort'
+      },
     };
 
-    const styleGuide = emotionStyles[emotion] || emotionStyles['보통'];
+    const config = emotionConfigs[emotion] || emotionConfigs['보통'];
 
-    // 고양이가 그린 것처럼 순수하고 귀여운 유치원생 스타일
-    const prompt = `A cute, innocent children's drawing style illustration, as if drawn by a kindergartener or a cat with crayons.
-Theme: ${summary}
-Mood: ${emotion}
-Style elements: ${styleGuide}
+    // 달이(고양이)가 크레용으로 그린 것 같은 투박하고 귀여운 그림
+    const prompt = `Create a cute illustration that looks like it was drawn by a cat using crayons.
 
-IMPORTANT STYLE REQUIREMENTS:
-- Simple, chunky crayon or colored pencil strokes
-- Imperfect but charming wobbly lines
-- Bright, primary colors (red, yellow, blue, green)
-- Adorable cat character as the main subject or narrator
-- Childlike simplicity with big expressive eyes
-- Cute doodle elements like stars, hearts, flowers
-- Pastel soft background
-- Hand-drawn, naive art style like a 5-year-old's drawing
-- Pure, innocent, and heartwarming atmosphere
+SCENE THEME (interpret visually, do not write text): ${summary}
 
-No text, no words, no letters in the image.
-Square format, suitable for mobile app diary.`;
+EMOTION: ${emotion} feeling
+- Color palette: ${config.colors}
+- Visual elements: ${config.elements}
+- Overall mood: ${config.mood}
+
+ART STYLE (CRITICAL - this is the most important part):
+- Looks like a cat tried to draw with crayons (clumsy paw grip)
+- Kindergartener's crude crayon drawing look
+- Chunky, wobbly, uneven crayon strokes
+- Lines don't connect perfectly, shapes are imperfect
+- Very simple shapes (circles, basic lines)
+- Coloring goes outside the lines sometimes
+- Pastel soft background with crayon texture
+- Naive, innocent, endearingly messy art style
+- Like something a 5-year-old or a cat would proudly draw
+
+STRICT RULES:
+- NO text, words, letters, or numbers anywhere
+- NO realistic or professional art style
+- NO detailed or complex illustrations
+- Square format (1:1 aspect ratio)
+- Must look genuinely childlike and crude (not polished)`;
 
     const apiUrl = `${API_BASE_URL}/${GEMINI_IMAGE_MODEL}:generateContent?key=${apiKey}`;
 
@@ -111,20 +139,20 @@ Square format, suitable for mobile app diary.`;
 
 /**
  * Generate image prompt for external use
- * Style: 고양이가 그린 것처럼 순수하고 귀여운 유치원생 스타일
+ * Style: 달이(고양이)가 크레용으로 그린 것처럼 투박한 그림
  */
 export const generateImagePrompt = (emotion: string, summary: string): string => {
   const emotionKeywords: Record<string, string> = {
-    '행복': 'bright sunny, rainbow, hearts, big smiles',
-    '슬픔': 'soft blue, tiny raindrops, gentle',
-    '보통': 'peaceful green, calm sunny day',
-    '화남': 'red scribbles, puffy clouds',
-    '불안': 'wobbly swirls, scattered dots',
+    '행복': 'bright sunny, rainbow, hearts, butterflies',
+    '슬픔': 'soft blue, tiny raindrops, gentle clouds',
+    '보통': 'peaceful green, calm sunny day, simple house',
+    '화남': 'red scribbles, stormy clouds, jagged lines',
+    '불안': 'wobbly swirls, scattered dots, tangled lines',
   };
 
   const keywords = emotionKeywords[emotion] || emotionKeywords['보통'];
 
-  return `Cute kindergartener's crayon drawing style, innocent cat character, ${keywords}, ${summary}, childlike naive art, chunky crayon strokes, pastel colors, no text, square format`;
+  return `Crude crayon drawing by a cat, kindergartener art style, ${keywords}, ${summary}, clumsy wobbly strokes, coloring outside lines, very simple shapes, pastel colors, no text, square format`;
 };
 
 export default generateDiaryImage;
