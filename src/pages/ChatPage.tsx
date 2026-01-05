@@ -680,10 +680,9 @@ export default function ChatPage() {
 
           {/* 입력 영역 */}
           <div style={{ display: 'flex', alignItems: 'center', padding: '12px 16px', gap: '8px' }}>
-            {/* 음성 버튼 */}
+            {/* 음성 버튼 - 베타테스트 기간 비활성화 */}
             <button
-              onClick={toggleListening}
-              disabled={!browserSupportsSpeechRecognition}
+              onClick={() => showToast('베타테스트에서는 아직 지원하지 않는 기능입니다', 'info')}
               className="hover:opacity-90 transition-all active:scale-93 border-0"
               style={{
                 width: '40px',
@@ -692,16 +691,15 @@ export default function ChatPage() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundColor: listening ? '#EF4444' : 'rgba(0, 0, 0, 0.6)',
+                backgroundColor: 'rgba(0, 0, 0, 0.6)',
                 borderRadius: '12px',
                 color: 'white',
-                animation: listening ? 'pulse 1.5s infinite' : 'none'
               }}
-              aria-label={listening ? "음성 인식 중지" : "음성 입력"}
-              title={!browserSupportsSpeechRecognition ? "이 브라우저에서 음성 인식을 지원하지 않습니다" : ""}
+              aria-label="음성 입력 (베타테스트 미지원)"
+              title="베타테스트에서는 아직 지원하지 않는 기능입니다"
             >
               <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>
-                {listening ? 'mic' : 'mic'}
+                mic
               </span>
             </button>
 
