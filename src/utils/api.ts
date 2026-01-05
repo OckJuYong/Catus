@@ -561,7 +561,7 @@ export const diaryApi = {
 
     const { data, error } = await supabase
       .from('diaries')
-      .select('id, diary_date, title, content_preview, emotion, thumbnail_url, is_read')
+      .select('id, diary_date, title, content_preview, emotion, thumbnail_url, image_url, is_read')
       .eq('user_id', userId)
       .gte('diary_date', startDate)
       .lte('diary_date', endDate)
@@ -578,7 +578,7 @@ export const diaryApi = {
         title: d.title || '오늘의 일기',
         previewText: d.content_preview || '',
         emotion: d.emotion || '보통',
-        thumbnailUrl: d.thumbnail_url || d.thumbnail_url,
+        thumbnailUrl: d.thumbnail_url || d.image_url,
         isRead: d.is_read,
       })),
       year,
