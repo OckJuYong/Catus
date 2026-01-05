@@ -100,7 +100,7 @@ export default function CalendarPage() {
             src={diary.thumbnailUrl}
             alt="diary"
             className="w-full h-full object-cover"
-            style={{ opacity: 0.5 }}
+            style={{ opacity: 0.1 }}
           />
         </div>
       );
