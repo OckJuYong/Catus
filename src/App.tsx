@@ -22,7 +22,6 @@ import Onboarding from "./pages/Onboarding";
 import HomePage from './pages/HomePage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import ChatPage from './pages/ChatPage';
-import ChatAnalysisPage from './pages/ChatAnalysisPage';
 import ChatDatePage from './pages/ChatDatePage';
 import CalendarPage from './pages/CalendarPage';
 import MessagesPage from './pages/MessagesPage';
@@ -31,7 +30,6 @@ import DiaryRevealPage from './pages/DiaryRevealPage';
 import SettingsPage from './pages/SettingsPage';
 import RandomDiaryPage from './pages/RandomDiaryPage';
 import Big5StatsPage from './pages/Big5StatsPage';
-import Big5TestPage from './pages/Big5TestPage';
 import GeneralLoginPage from './pages/GeneralLoginPage';
 import GeneralSignupPage from './pages/GeneralSignupPage';
 
@@ -188,7 +186,6 @@ function App() {
                 <Route path="/onboarding/flow" element={<PrivateRoute><OnboardingPage /></PrivateRoute>} />
                 <Route path="/home" element={<PrivateRoute><HomePage /></PrivateRoute>} />
                 <Route path="/chat" element={<PrivateRoute><ChatPage /></PrivateRoute>} />
-                <Route path="/chat/analysis" element={<PrivateRoute><ChatAnalysisPage /></PrivateRoute>} />
                 <Route path="/chat/:date" element={<PrivateRoute><ChatDatePage /></PrivateRoute>} />
                 <Route path="/calendar" element={<PrivateRoute><CalendarPage /></PrivateRoute>} />
                 <Route path="/diary-reveal/:id" element={<PrivateRoute><DiaryRevealPage /></PrivateRoute>} />
@@ -197,7 +194,6 @@ function App() {
                 <Route path="/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
                 <Route path="/random-diary" element={<PrivateRoute><RandomDiaryPage /></PrivateRoute>} />
                 <Route path="/big5/stats" element={<PrivateRoute><Big5StatsPage /></PrivateRoute>} />
-                <Route path="/big5/test" element={<PrivateRoute><Big5TestPage /></PrivateRoute>} />
               </Routes>
               </Router>
             </TutorialProvider>

@@ -6,7 +6,6 @@ export const ROUTES = {
   LOADING: "/loading",
   HOME: "/home",
   CHAT: "/chat",
-  CHAT_ANALYSIS: "/chat/analysis",
   CHAT_DATE: "/chat/:date",
   CALENDAR: "/calendar",
   DIARY: "/diary",
@@ -14,7 +13,6 @@ export const ROUTES = {
   SETTINGS: "/settings",
   MESSAGES: "/messages",
   BIG5_STATS: "/big5/stats",
-  BIG5_TEST: "/big5/test",
   RANDOM_DIARY: "/random-diary",
   DIARY_REVEAL: "/diary-reveal"
 } as const;

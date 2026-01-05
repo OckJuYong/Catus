@@ -326,16 +326,6 @@ export default function CalendarPage() {
             </div>
           </div>
 
-          {/* 오늘의 그림일기 쓰기 버튼 */}
-          <div className="w-full flex justify-center pb-[6px] pt-[30px] -mt-[24px] rounded-b-[24px]" style={{ backgroundColor: isDarkMode ? '#3a3a3a' : '#f7f7f7' }}>
-            <button
-              className="w-[90%] py-[12px] bg-[#5F6F52] text-[white] rounded-[14px]
-                         font-semibold text-[14px] shadow-md hover:opacity-90 transition-all border-0 outline-none"
-              onClick={() => navigate(ROUTES.CHAT)}
-            >
-              오늘의 그림일기 쓰기
-            </button>
-          </div>
         </motion.div>
       </div>
 

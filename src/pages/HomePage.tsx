@@ -78,12 +78,11 @@ const hasNewMessage = unreadCount > 0;
     const checkBig5Data = async () => {
       try {
         await api.big5.getCurrent();
-        console.log('✅ Big5 데이터 존재 - 홈페이지 유지');
-        setIsBig5Checked(true);
+        console.log('✅ Big5 데이터 존재');
       } catch (error: any) {
-        console.log('❌ Big5 데이터 없음 - Big5 테스트로 이동');
-        navigate('/big5/test');
+        console.log('ℹ️ Big5 데이터 없음 - 일기 생성 시 자동 분석됨');
       }
+      setIsBig5Checked(true);
     };
 
     checkBig5Data();
