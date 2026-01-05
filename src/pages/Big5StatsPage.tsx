@@ -284,7 +284,7 @@ export default function Big5StatsPage() {
           <div className="flex flex-col gap-[20px]">
             {Object.entries(BIG5_TRAITS).map(([key, trait]) => {
               const score = scores[key as keyof typeof scores] || 0;
-              const percentage = Math.min(100, Math.round(score * 10)); // 10점 만점을 100%로
+              const percentage = Math.min(100, Math.round(score)); // 이미 0-100 범위
 
               return (
                 <div key={key}>
