@@ -1,6 +1,6 @@
 /**
- * Google Imagen (Nano Banana) Client
- * Image generation for diary illustrations
+ * Gemini Image Generation (Nano Banana) Client
+ * Image generation for diary illustrations using Gemini 2.0 Flash
  */
 
 const apiKey = import.meta.env.VITE_IMAGEN_API_KEY;
@@ -9,18 +9,27 @@ if (!apiKey) {
   throw new Error('Missing VITE_IMAGEN_API_KEY environment variable');
 }
 
-// Imagen API endpoint (using Vertex AI endpoint)
-const IMAGEN_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict';
+// Gemini 이미지 생성 모델 (Nano Banana)
+// 참고: gemini-2.5-flash-image가 GA 버전이지만 API 키 문제로 2.0 사용
+const GEMINI_IMAGE_MODEL = 'gemini-2.0-flash-exp-image-generation';
+const API_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
 
-interface ImagenResponse {
-  predictions: Array<{
-    bytesBase64Encoded: string;
-    mimeType: string;
+interface GeminiImageResponse {
+  candidates: Array<{
+    content: {
+      parts: Array<{
+        text?: string;
+        inlineData?: {
+          mimeType: string;
+          data: string;
+        };
+      }>;
+    };
   }>;
 }
 
 /**
- * Generate diary illustration using Imagen
+ * Generate diary illustration using Gemini Image Generation (Nano Banana)
  * Style: 고양이가 그린 것처럼 순수하고 귀여운 유치원생 스타일
  */
 export const generateDiaryImage = async (
@@ -59,38 +68,40 @@ IMPORTANT STYLE REQUIREMENTS:
 No text, no words, no letters in the image.
 Square format, suitable for mobile app diary.`;
 
-    const response = await fetch(`${IMAGEN_API_URL}?key=${apiKey}`, {
+    const apiUrl = `${API_BASE_URL}/${GEMINI_IMAGE_MODEL}:generateContent?key=${apiKey}`;
+
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        instances: [
-          {
-            prompt: prompt,
-          },
-        ],
-        parameters: {
-          sampleCount: 1,
-          aspectRatio: '1:1',
-          safetyFilterLevel: 'block_some',
-          personGeneration: 'dont_allow',
-        },
+        contents: [{
+          parts: [{ text: prompt }]
+        }],
+        generationConfig: {
+          responseModalities: ['TEXT', 'IMAGE'],
+        }
       }),
     });
 
     if (!response.ok) {
-      console.error('Imagen API error:', response.status, await response.text());
+      console.error('Gemini Image API error:', response.status, await response.text());
       return null;
     }
 
-    const data: ImagenResponse = await response.json();
+    const data: GeminiImageResponse = await response.json();
 
-    if (data.predictions && data.predictions.length > 0) {
-      const base64Image = data.predictions[0].bytesBase64Encoded;
-      return `data:image/png;base64,${base64Image}`;
+    // Gemini 응답에서 이미지 찾기
+    const parts = data.candidates?.[0]?.content?.parts || [];
+    const imagePart = parts.find(p => p.inlineData?.mimeType?.startsWith('image/'));
+
+    if (imagePart?.inlineData) {
+      const { mimeType, data: base64Data } = imagePart.inlineData;
+      return `data:${mimeType};base64,${base64Data}`;
     }
 
+    console.warn('Gemini response did not contain an image');
     return null;
   } catch (error) {
     console.error('Image generation error:', error);
@@ -99,8 +110,7 @@ Square format, suitable for mobile app diary.`;
 };
 
 /**
- * Alternative: Generate image using Gemini's vision capabilities
- * Fallback if Imagen is not available
+ * Generate image prompt for external use
  * Style: 고양이가 그린 것처럼 순수하고 귀여운 유치원생 스타일
  */
 export const generateImagePrompt = (emotion: string, summary: string): string => {
