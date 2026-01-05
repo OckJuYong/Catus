@@ -80,8 +80,9 @@ export default function ChatDatePage() {
       >
         <button
           onClick={() => navigate(ROUTES.CHAT)}
-          className="hover:opacity-70 text-[20px] bg-transparent border-0"
-          style={{ marginTop: '-5px', color: isDarkMode ? '#FFFFFF' : '#5E7057' }}
+          className="w-[44px] h-[44px] flex items-center justify-center hover:opacity-70 text-[20px] bg-transparent border-0 cursor-pointer"
+          style={{ color: isDarkMode ? '#FFFFFF' : '#5E7057' }}
+          aria-label="뒤로 가기"
         >
           ←
         </button>

@@ -438,8 +438,9 @@ export default function DiaryDetailPage() {
       >
         <button
           onClick={() => navigate(ROUTES.CALENDAR)}
-          className="hover:opacity-70 text-[20px] bg-transparent border-0"
-          style={{ marginTop: '-5px', color: isDarkMode ? '#FFFFFF' : '#5E7057' }}
+          className="w-[44px] h-[44px] flex items-center justify-center hover:opacity-70 text-[20px] bg-transparent border-0 cursor-pointer"
+          style={{ color: isDarkMode ? '#FFFFFF' : '#5E7057' }}
+          aria-label="뒤로 가기"
         >
           ←
         </button>
@@ -453,8 +454,9 @@ export default function DiaryDetailPage() {
 
         <button
           onClick={() => setShowEditModal(true)}
-          className="hover:opacity-70 text-[20px] bg-transparent border-0"
-          style={{ marginTop: '-4px', color: isDarkMode ? '#FFFFFF' : '#5E7057' }}
+          className="w-[44px] h-[44px] flex items-center justify-center hover:opacity-70 text-[20px] bg-transparent border-0 cursor-pointer"
+          style={{ color: isDarkMode ? '#FFFFFF' : '#5E7057' }}
+          aria-label="메뉴"
         >
           ⋯
         </button>

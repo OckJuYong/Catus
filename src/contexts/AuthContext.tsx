@@ -19,6 +19,7 @@ interface AuthContextValue {
   updateUser: (updates: Partial<User>) => void;
   getAccessToken: () => string | null;
   refreshAccessToken: () => Promise<string | null>;
+  refreshUser: () => Promise<void>; // 세션 갱신 후 유저 정보 다시 로드
   signInWithKakao: () => Promise<void>;
   signInWithEmailPassword: (email: string, password: string) => Promise<{ error: string | null }>;
   signUpWithEmailPassword: (email: string, password: string, nickname?: string) => Promise<{ error: string | null }>;
@@ -276,6 +277,26 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     } catch (error) {
       console.error('❌ Token refresh failed:', error);
       return null;
+    }
+  };
+
+  // Refresh user state from current session (모바일 딥링크 콜백에서 사용)
+  const refreshUser = async (): Promise<void> => {
+    try {
+      console.log('🔄 유저 정보 갱신 중...');
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+
+      if (currentSession?.user) {
+        setSession(currentSession);
+        const appUser = await convertToAppUser(currentSession.user);
+        setUser(appUser);
+        localStorage.setItem('catus_user', JSON.stringify(appUser));
+        console.log('✅ 유저 정보 갱신 완료:', appUser.nickname);
+      } else {
+        console.log('⚠️ 세션 없음');
+      }
+    } catch (error) {
+      console.error('❌ 유저 정보 갱신 실패:', error);
     }
   };
 
@@ -540,6 +561,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     updateUser,
     getAccessToken,
     refreshAccessToken,
+    refreshUser,
     signInWithKakao: handleSignInWithKakao,
     signInWithEmailPassword: handleSignInWithEmailPassword,
     signUpWithEmailPassword: handleSignUpWithEmailPassword,

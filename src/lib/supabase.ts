@@ -22,19 +22,55 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   },
 });
 
+// 웹 도메인 (Vercel 배포 URL)
+const WEB_URL = 'https://haruon-original.vercel.app';
+
 // Auth helpers
+
+/**
+ * 웹용 카카오 로그인 (Supabase OAuth)
+ * - 웹에서는 현재 도메인으로 리다이렉트
+ */
 export const signInWithKakao = async () => {
-  // 현재 앱 URL을 기반으로 리다이렉트 URL 설정 (OAuth 완료 후 돌아올 곳)
-  // 루트 페이지로 리다이렉트하면 LoginPage에서 세션 감지 후 적절한 페이지로 이동
-  const redirectUrl = typeof window !== 'undefined'
+  const redirectUrl = typeof window !== 'undefined' && !window.location.origin.includes('localhost')
     ? window.location.origin
-    : 'https://haruon-original.vercel.app';
+    : WEB_URL;
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'kakao',
     options: {
       redirectTo: redirectUrl,
     },
+  });
+  return { data, error };
+};
+
+/**
+ * 모바일 앱용 카카오 OAuth URL 생성
+ * - 앱에서는 웹 콜백 페이지로 리다이렉트 후, 커스텀 스킴으로 앱 복귀
+ */
+export const getKakaoOAuthUrlForMobile = async (): Promise<{ url: string | null; error: any }> => {
+  // 모바일용 콜백 URL (웹 페이지에서 앱으로 리다이렉트)
+  const mobileCallbackUrl = `${WEB_URL}/auth/kakao/mobile-callback`;
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'kakao',
+    options: {
+      redirectTo: mobileCallbackUrl,
+      skipBrowserRedirect: true, // 브라우저 리다이렉트 안하고 URL만 반환
+    },
+  });
+
+  return { url: data?.url || null, error };
+};
+
+/**
+ * 모바일 앱에서 Supabase 세션 설정 (토큰으로 직접 로그인)
+ */
+export const setSessionFromTokens = async (accessToken: string, refreshToken: string) => {
+  const { data, error } = await supabase.auth.setSession({
+    access_token: accessToken,
+    refresh_token: refreshToken,
   });
   return { data, error };
 };

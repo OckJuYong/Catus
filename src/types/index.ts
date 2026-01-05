@@ -226,21 +226,17 @@ export interface Big5Scores {
 
 // 백엔드: POST /api/big5/initial 응답
 export interface Big5TestResponse {
-  openness: number;
-  conscientiousness: number;
-  extraversion: number;
-  agreeableness: number;
-  neuroticism: number;
+  scores: Big5Scores;
   analysis: string;
+  completedAt?: string;
 }
 
 // 백엔드: GET /api/big5/current 응답
 export interface Big5CurrentResponse {
-  openness: number;
-  conscientiousness: number;
-  extraversion: number;
-  agreeableness: number;
-  neuroticism: number;
+  scores: Big5Scores | null;
+  analysis?: string;
+  lastUpdated?: string;
+  hasCompletedTest: boolean;
 }
 
 // 백엔드: GET /api/big5/history 응답

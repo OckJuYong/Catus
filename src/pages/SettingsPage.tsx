@@ -408,8 +408,8 @@ function SettingsPage() {
       {/* 헤더 */}
       <div className="relative flex items-center justify-center" style={{ paddingTop: '16px', paddingBottom: '16px', paddingLeft: '20px', paddingRight: '20px', borderBottom: '1px solid var(--color-border)', backgroundColor: 'var(--color-bg-card)' }}>
         <button
-          className="absolute left-[20px] bg-transparent border-0 cursor-pointer transition-all active:scale-93"
-          style={{ fontSize: '20px', paddingLeft: '1px', paddingRight: '8px', transform: 'translateY(-2px)', color: 'var(--color-text-primary)' }}
+          className="absolute left-[12px] w-[44px] h-[44px] flex items-center justify-center bg-transparent border-0 cursor-pointer transition-all active:scale-93"
+          style={{ fontSize: '20px', color: 'var(--color-text-primary)' }}
           onClick={() => navigate(-1)}
           aria-label="뒤로가기"
         >

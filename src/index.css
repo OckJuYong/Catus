@@ -1,5 +1,5 @@
-/* Pretendard 폰트 */
-@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
+/* Pretendard 폰트 - 외부 로딩 제거 (시스템 폰트 사용) */
+/* @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css'); */
 
 @tailwind base;
 @tailwind components;
@@ -53,6 +53,13 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  background-color: #fef9f1 !important;
+  color: #333333 !important;
+}
+
+#root {
+  min-height: 100vh;
+  background-color: #fef9f1;
 }
 
 h1 {

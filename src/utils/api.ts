@@ -4,7 +4,7 @@
  */
 
 import { supabase, signInWithKakao, signOut, getCurrentUser, getSession } from '../lib/supabase';
-import { chatWithGemini, analyzeChatEmotion, generateDiaryFromChat, analyzeBig5FromChat, analyzeConversationPsychology } from '../lib/gemini';
+import { chatWithGemini, chatWithGeminiAndMemory, analyzeChatEmotion, generateDiaryFromChat, analyzeBig5FromChat, analyzeConversationPsychology, extractMemoriesFromChat, generateDailySummary } from '../lib/gemini';
 import { generateDiaryImage } from '../lib/imagen';
 import type {
   LoginResponse,
@@ -32,7 +32,7 @@ import type {
   MonthlyStats,
   OnboardingData,
 } from '../types';
-import type { Emotion } from '../types/database';
+import type { Emotion, MemoryCategory } from '../types/database';
 
 /**
  * API 에러 클래스
@@ -260,36 +260,76 @@ export const authApi = {
  * 💬 채팅 API
  */
 export const chatApi = {
-  // 메시지 전송 (개인화 프롬프트 지원)
+  // 메시지 전송 (개인화 프롬프트 + 장기 기억 지원)
   sendMessage: async (content: string): Promise<{ messageId: number; userMessage: string; aiResponse: string; timestamp: string }> => {
     const userId = await getCurrentUserId();
     const today = formatDate(new Date());
 
-    // Get user's personalized prompt
-    const { data: settingsData } = await supabase
-      .from('user_settings')
-      .select('personalized_prompt')
-      .eq('user_id', userId)
-      .single();
+    // Parallel fetch: personalized prompt, chat history, memory context
+    const [settingsResult, historyResult, memoryContext] = await Promise.all([
+      supabase
+        .from('user_settings')
+        .select('personalized_prompt')
+        .eq('user_id', userId)
+        .single(),
+      supabase
+        .from('chat_messages')
+        .select('user_message, ai_response')
+        .eq('user_id', userId)
+        .eq('chat_date', today)
+        .order('created_at', { ascending: true }),
+      // 메모리 컨텍스트 가져오기 (장기 기억 + 최근 대화 요약)
+      (async () => {
+        try {
+          // 메모리 조회
+          const { data: memories } = await supabase
+            .from('user_memories')
+            .select('category, content')
+            .eq('user_id', userId)
+            .order('importance', { ascending: false })
+            .order('last_mentioned', { ascending: false })
+            .limit(15);
 
-    const personalizedPrompt = settingsData?.personalized_prompt || null;
+          // 최근 7일 요약 조회
+          const startDate = new Date();
+          startDate.setDate(startDate.getDate() - 7);
+          const startDateStr = startDate.toISOString().split('T')[0];
 
-    // Get today's chat history for context
-    const { data: historyData } = await supabase
-      .from('chat_messages')
-      .select('user_message, ai_response')
-      .eq('user_id', userId)
-      .eq('chat_date', today)
-      .order('created_at', { ascending: true });
+          const { data: summaries } = await supabase
+            .from('chat_summaries')
+            .select('summary_date, summary')
+            .eq('user_id', userId)
+            .gte('summary_date', startDateStr)
+            .neq('summary_date', today) // 오늘 제외 (아직 진행중)
+            .order('summary_date', { ascending: false });
+
+          return {
+            memories: (memories || []).map(m => ({ category: m.category, content: m.content })),
+            recentSummaries: (summaries || []).map(s => ({ date: s.summary_date, summary: s.summary })),
+          };
+        } catch {
+          return { memories: [], recentSummaries: [] };
+        }
+      })(),
+    ]);
+
+    const personalizedPrompt = settingsResult.data?.personalized_prompt || null;
+    const historyData = historyResult.data || [];
 
     // Build chat history for Gemini
-    const chatHistory = (historyData || []).flatMap(msg => [
+    const chatHistory = historyData.flatMap(msg => [
       { role: 'user' as const, parts: [{ text: msg.user_message }] },
       { role: 'model' as const, parts: [{ text: msg.ai_response }] },
     ]);
 
-    // Get AI response from Gemini with personalized prompt
-    const aiResponse = await chatWithGemini(content, chatHistory, personalizedPrompt);
+    // Get AI response from Gemini with personalized prompt + memory context
+    const aiResponse = await chatWithGeminiAndMemory(
+      content,
+      chatHistory,
+      personalizedPrompt,
+      memoryContext.memories,
+      memoryContext.recentSummaries
+    );
 
     // Save to database
     const { data, error } = await supabase
@@ -366,6 +406,35 @@ export const chatApi = {
         timestamp: msg.created_at,
       })),
     };
+  },
+
+  // 최근 7일 대화 내역 조회 (카카오톡 스타일)
+  getWeekHistory: async (): Promise<Array<{ id: number; userMessage: string; aiResponse: string; timestamp: string; chatDate: string }>> => {
+    const userId = await getCurrentUserId();
+
+    // 7일 전 날짜 계산
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - 7);
+    const startDateStr = startDate.toISOString().split('T')[0];
+
+    const { data, error } = await supabase
+      .from('chat_messages')
+      .select('id, user_message, ai_response, created_at, chat_date')
+      .eq('user_id', userId)
+      .gte('chat_date', startDateStr)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      throw new ApiError('대화 내역 조회에 실패했습니다.', 500, error);
+    }
+
+    return (data || []).map(msg => ({
+      id: msg.id,
+      userMessage: msg.user_message,
+      aiResponse: msg.ai_response,
+      timestamp: msg.created_at,
+      chatDate: msg.chat_date,
+    }));
   },
 
   // 채팅 분석 및 일기 생성
@@ -744,13 +813,47 @@ export const supportApi = messageApi;
 /**
  * 🧠 Big5 성격 분석 API
  */
+
+// 질문 ID별 trait 매핑 (big5Questions.ts 기반)
+const QUESTION_TRAIT_MAP: Record<number, 'openness' | 'conscientiousness' | 'extraversion' | 'agreeableness' | 'neuroticism'> = {
+  1: 'extraversion',
+  2: 'agreeableness',
+  3: 'conscientiousness',
+  4: 'neuroticism',
+  5: 'openness',
+  6: 'extraversion',
+  7: 'conscientiousness',
+  8: 'openness',
+  9: 'agreeableness',
+  10: 'neuroticism',
+};
+
 export const big5Api = {
   // 초기 성격 테스트
   submitInitial: async (answers: Array<{ questionId: number; score: number }>): Promise<Big5TestResponse> => {
     const userId = await getCurrentUserId();
 
-    // Calculate Big5 scores from answers (simplified calculation)
-    // In a real implementation, you'd have a proper scoring algorithm
+    // 각 trait별 점수 합계와 문항 수
+    const traitScores: Record<string, { total: number; count: number }> = {
+      openness: { total: 0, count: 0 },
+      conscientiousness: { total: 0, count: 0 },
+      extraversion: { total: 0, count: 0 },
+      agreeableness: { total: 0, count: 0 },
+      neuroticism: { total: 0, count: 0 },
+    };
+
+    // 각 답변을 해당 trait에 매핑 (역문항은 이미 Big5TestPage에서 처리됨)
+    answers.forEach(a => {
+      const trait = QUESTION_TRAIT_MAP[a.questionId];
+      if (trait) {
+        traitScores[trait].total += a.score;
+        traitScores[trait].count += 1;
+      }
+    });
+
+    // 각 trait별 평균 점수를 0-100 범위로 변환
+    // 점수 범위: 1-5, 각 trait당 2문항 → 최대 10점
+    // 평균을 구한 후 (1-5) → (0-100)으로 변환: ((avg - 1) / 4) * 100
     const traits = {
       openness: 0,
       conscientiousness: 0,
@@ -759,19 +862,13 @@ export const big5Api = {
       neuroticism: 0,
     };
 
-    // Simple mapping: questions 1-10 -> Openness, 11-20 -> Conscientiousness, etc.
-    answers.forEach(a => {
-      const traitIndex = Math.floor((a.questionId - 1) / 10);
-      const traitKeys = Object.keys(traits) as (keyof typeof traits)[];
-      if (traitIndex < traitKeys.length) {
-        traits[traitKeys[traitIndex]] += a.score;
-      }
-    });
-
-    // Normalize to 0-100
     Object.keys(traits).forEach(key => {
       const k = key as keyof typeof traits;
-      traits[k] = Math.min(100, Math.max(0, (traits[k] / 50) * 100));
+      const { total, count } = traitScores[k];
+      if (count > 0) {
+        const avg = total / count; // 1-5 범위
+        traits[k] = Math.round(((avg - 1) / 4) * 100); // 0-100 범위
+      }
     });
 
     const analysis = `당신은 개방성 ${traits.openness}%, 성실성 ${traits.conscientiousness}%, 외향성 ${traits.extraversion}%, 친화성 ${traits.agreeableness}%, 신경증 ${traits.neuroticism}%의 성향을 보입니다.`;
@@ -1128,6 +1225,233 @@ export const statsApi = {
 };
 
 /**
+ * 🧠 메모리 (장기 기억) API
+ */
+export const memoryApi = {
+  // 사용자 메모리 조회
+  getMemories: async (limit: number = 20): Promise<Array<{
+    id: number;
+    category: MemoryCategory;
+    content: string;
+    importance: number;
+    sourceDate: string;
+    lastMentioned: string;
+    mentionCount: number;
+  }>> => {
+    const userId = await getCurrentUserId();
+
+    const { data, error } = await supabase
+      .from('user_memories')
+      .select('*')
+      .eq('user_id', userId)
+      .order('importance', { ascending: false })
+      .order('last_mentioned', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error('메모리 조회 실패:', error);
+      return [];
+    }
+
+    return (data || []).map(m => ({
+      id: m.id,
+      category: m.category,
+      content: m.content,
+      importance: m.importance,
+      sourceDate: m.source_date,
+      lastMentioned: m.last_mentioned,
+      mentionCount: m.mention_count,
+    }));
+  },
+
+  // 새 메모리 저장
+  saveMemory: async (memory: {
+    category: MemoryCategory;
+    content: string;
+    importance: number;
+  }): Promise<{ id: number } | null> => {
+    const userId = await getCurrentUserId();
+    const today = new Date().toISOString().split('T')[0];
+
+    // 중복 체크 - 비슷한 내용이 있는지 확인
+    const { data: existing } = await supabase
+      .from('user_memories')
+      .select('id, content')
+      .eq('user_id', userId)
+      .ilike('content', `%${memory.content.substring(0, 20)}%`)
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      // 이미 비슷한 메모리가 있으면 업데이트
+      await supabase
+        .from('user_memories')
+        .update({
+          last_mentioned: today,
+          mention_count: supabase.rpc('increment', { row_id: existing[0].id }),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', existing[0].id);
+      return { id: existing[0].id };
+    }
+
+    // 새 메모리 저장
+    const { data, error } = await supabase
+      .from('user_memories')
+      .insert({
+        user_id: userId,
+        category: memory.category,
+        content: memory.content,
+        importance: memory.importance,
+        source_date: today,
+        last_mentioned: today,
+        mention_count: 1,
+      })
+      .select('id')
+      .maybeSingle();
+
+    if (error) {
+      console.error('메모리 저장 실패:', error);
+      return null;
+    }
+
+    return data;
+  },
+
+  // 메모리 삭제
+  deleteMemory: async (memoryId: number): Promise<boolean> => {
+    const userId = await getCurrentUserId();
+
+    const { error } = await supabase
+      .from('user_memories')
+      .delete()
+      .eq('id', memoryId)
+      .eq('user_id', userId);
+
+    return !error;
+  },
+
+  // 대화에서 메모리 추출 및 저장
+  extractAndSaveMemories: async (messages: Array<{ userMessage: string; aiResponse: string }>): Promise<number> => {
+    try {
+      const extracted = await extractMemoriesFromChat(messages);
+
+      if (extracted.length === 0) {
+        return 0;
+      }
+
+      let savedCount = 0;
+      for (const memory of extracted) {
+        const result = await memoryApi.saveMemory({
+          category: memory.category,
+          content: memory.content,
+          importance: memory.importance,
+        });
+        if (result) savedCount++;
+      }
+
+      return savedCount;
+    } catch (error) {
+      console.error('메모리 추출 및 저장 실패:', error);
+      return 0;
+    }
+  },
+
+  // 최근 대화 요약 조회
+  getRecentSummaries: async (days: number = 7): Promise<Array<{
+    date: string;
+    summary: string;
+    keyTopics: string[];
+    emotionTrend: string;
+  }>> => {
+    const userId = await getCurrentUserId();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+    const startDateStr = startDate.toISOString().split('T')[0];
+
+    const { data, error } = await supabase
+      .from('chat_summaries')
+      .select('*')
+      .eq('user_id', userId)
+      .gte('summary_date', startDateStr)
+      .order('summary_date', { ascending: false });
+
+    if (error) {
+      console.error('요약 조회 실패:', error);
+      return [];
+    }
+
+    return (data || []).map(s => ({
+      date: s.summary_date,
+      summary: s.summary,
+      keyTopics: s.key_topics || [],
+      emotionTrend: s.emotion_trend || '보통',
+    }));
+  },
+
+  // 하루 대화 요약 저장
+  saveDailySummary: async (date: string, messages: Array<{ userMessage: string; aiResponse: string }>): Promise<boolean> => {
+    try {
+      const userId = await getCurrentUserId();
+
+      // 요약 생성
+      const summaryData = await generateDailySummary(messages);
+
+      // 기존 요약이 있는지 확인
+      const { data: existing } = await supabase
+        .from('chat_summaries')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('summary_date', date)
+        .maybeSingle();
+
+      if (existing) {
+        // 업데이트
+        await supabase
+          .from('chat_summaries')
+          .update({
+            summary: summaryData.summary,
+            key_topics: summaryData.keyTopics,
+            emotion_trend: summaryData.emotionTrend,
+          })
+          .eq('id', existing.id);
+      } else {
+        // 새로 저장
+        await supabase
+          .from('chat_summaries')
+          .insert({
+            user_id: userId,
+            summary_date: date,
+            summary: summaryData.summary,
+            key_topics: summaryData.keyTopics,
+            emotion_trend: summaryData.emotionTrend,
+          });
+      }
+
+      return true;
+    } catch (error) {
+      console.error('요약 저장 실패:', error);
+      return false;
+    }
+  },
+
+  // 채팅용 메모리 컨텍스트 가져오기
+  getMemoryContext: async (): Promise<{
+    memories: Array<{ category: string; content: string }>;
+    recentSummaries: Array<{ date: string; summary: string }>;
+  }> => {
+    const [memories, summaries] = await Promise.all([
+      memoryApi.getMemories(15), // 상위 15개 메모리
+      memoryApi.getRecentSummaries(7), // 최근 7일 요약
+    ]);
+
+    return {
+      memories: memories.map(m => ({ category: m.category, content: m.content })),
+      recentSummaries: summaries.map(s => ({ date: s.date, summary: s.summary })),
+    };
+  },
+};
+
+/**
  * 📊 연구용 데이터 API
  */
 export const researchApi = {
@@ -1360,6 +1684,7 @@ const api = {
   big5: big5Api,
   settings: settingsApi,
   stats: statsApi,
+  memory: memoryApi, // 장기 기억 API
   research: researchApi, // 연구용 API
 };
 

@@ -456,4 +456,228 @@ ${conversationText}
   }
 };
 
+/**
+ * 대화에서 중요한 정보(기억)를 추출
+ * 생일, 취미, 관심사, 중요한 사건, 관계 등
+ */
+export const extractMemoriesFromChat = async (
+  messages: Array<{ userMessage: string; aiResponse: string }>
+): Promise<Array<{
+  category: 'personal_info' | 'preference' | 'event' | 'relationship' | 'habit' | 'other';
+  content: string;
+  importance: number;
+}>> => {
+  try {
+    if (messages.length < 3) {
+      return []; // 충분한 대화가 없으면 추출 안함
+    }
+
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.0-flash-exp',
+      generationConfig: {
+        temperature: 0.2,
+        maxOutputTokens: 1024,
+      },
+    });
+
+    const conversationText = messages
+      .map((m) => `사용자: ${m.userMessage}`)
+      .join('\n');
+
+    const prompt = `다음 대화에서 사용자에 대해 기억해야 할 중요한 정보를 추출해주세요.
+
+대화 내용:
+${conversationText}
+
+추출할 정보 유형:
+1. personal_info: 이름, 생일, 나이, 직업, 학교, 거주지 등 개인 정보
+2. preference: 좋아하는 것, 싫어하는 것, 취미, 관심사
+3. event: 중요한 사건, 기념일, 약속, 계획
+4. relationship: 가족, 친구, 연인, 동료 등 주변 관계
+5. habit: 습관, 루틴, 일상 패턴
+6. other: 기타 기억해야 할 정보
+
+중요도 기준 (1-5):
+- 5: 매우 중요 (생일, 가족관계 등)
+- 4: 중요 (직업, 취미 등)
+- 3: 보통 (최근 관심사 등)
+- 2: 낮음 (일시적 정보)
+- 1: 매우 낮음
+
+응답 형식 (JSON 배열만 반환, 없으면 빈 배열):
+[
+  {
+    "category": "카테고리",
+    "content": "기억할 내용 (간결하게, 한 문장)",
+    "importance": 1-5 숫자
+  }
+]
+
+주의:
+- 확실한 정보만 추출 (추측하지 않기)
+- 대화에서 직접 언급된 내용만 추출
+- 일반적인 감정이나 인사는 제외
+- 최대 5개까지만 추출`;
+
+    const result = await model.generateContent(prompt);
+    const text = result.response.text();
+
+    // Parse JSON array from response
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      return Array.isArray(parsed) ? parsed : [];
+    }
+
+    return [];
+  } catch (error) {
+    console.error('Memory extraction error:', error);
+    return [];
+  }
+};
+
+/**
+ * 하루 대화 요약 생성
+ */
+export const generateDailySummary = async (
+  messages: Array<{ userMessage: string; aiResponse: string }>
+): Promise<{
+  summary: string;
+  keyTopics: string[];
+  emotionTrend: string;
+}> => {
+  try {
+    if (messages.length < 2) {
+      return {
+        summary: '대화가 충분하지 않습니다.',
+        keyTopics: [],
+        emotionTrend: '보통',
+      };
+    }
+
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.0-flash-exp',
+      generationConfig: {
+        temperature: 0.3,
+        maxOutputTokens: 512,
+      },
+    });
+
+    const conversationText = messages
+      .map((m) => `사용자: ${m.userMessage}\n달이: ${m.aiResponse}`)
+      .join('\n\n');
+
+    const prompt = `다음 대화를 요약해주세요.
+
+대화 내용:
+${conversationText}
+
+응답 형식 (JSON만 반환):
+{
+  "summary": "오늘 대화 요약 (2-3문장, 사용자가 무엇에 대해 이야기했는지)",
+  "keyTopics": ["주제1", "주제2", "주제3"],
+  "emotionTrend": "행복" | "슬픔" | "보통" | "화남" | "불안" 중 전체적인 감정
+}`;
+
+    const result = await model.generateContent(prompt);
+    const text = result.response.text();
+
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      return {
+        summary: parsed.summary || '대화를 나눴습니다.',
+        keyTopics: parsed.keyTopics || [],
+        emotionTrend: parsed.emotionTrend || '보통',
+      };
+    }
+
+    return {
+      summary: '오늘 대화를 나눴습니다.',
+      keyTopics: [],
+      emotionTrend: '보통',
+    };
+  } catch (error) {
+    console.error('Daily summary generation error:', error);
+    return {
+      summary: '요약 생성 중 오류가 발생했습니다.',
+      keyTopics: [],
+      emotionTrend: '보통',
+    };
+  }
+};
+
+/**
+ * 메모리 컨텍스트를 포함한 시스템 프롬프트 생성
+ */
+export const buildSystemPromptWithMemory = (
+  personalizedPrompt: string | null,
+  memories: Array<{ category: string; content: string }>,
+  recentSummaries: Array<{ date: string; summary: string }>
+): string => {
+  let systemPrompt = BASE_SYSTEM_PROMPT;
+
+  // 개인화 프롬프트 추가
+  if (personalizedPrompt) {
+    systemPrompt += `\n\n## 이 집사만을 위한 맞춤 스타일\n${personalizedPrompt}`;
+  }
+
+  // 기억 컨텍스트 추가
+  if (memories.length > 0) {
+    const memoryText = memories
+      .map((m) => `- ${m.content}`)
+      .join('\n');
+    systemPrompt += `\n\n## 이 집사에 대해 기억하고 있는 것들\n${memoryText}\n\n이 정보들을 자연스럽게 대화에 활용하되, 갑자기 언급하지 말고 관련 주제가 나올 때만 사용하기.`;
+  }
+
+  // 최근 대화 요약 추가
+  if (recentSummaries.length > 0) {
+    const summaryText = recentSummaries
+      .slice(0, 5) // 최근 5일만
+      .map((s) => `- ${s.date}: ${s.summary}`)
+      .join('\n');
+    systemPrompt += `\n\n## 최근 대화 기록 (참고용)\n${summaryText}\n\n이전 대화 내용을 참고하여 대화의 연속성 유지하기.`;
+  }
+
+  return systemPrompt;
+};
+
+/**
+ * 메모리 컨텍스트를 포함한 채팅
+ */
+export const chatWithGeminiAndMemory = async (
+  userMessage: string,
+  chatHistory: Array<{ role: 'user' | 'model'; parts: Array<{ text: string }> }> = [],
+  personalizedPrompt: string | null = null,
+  memories: Array<{ category: string; content: string }> = [],
+  recentSummaries: Array<{ date: string; summary: string }> = []
+): Promise<string> => {
+  try {
+    const systemPrompt = buildSystemPromptWithMemory(personalizedPrompt, memories, recentSummaries);
+
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.0-flash-exp',
+      systemInstruction: systemPrompt,
+      safetySettings,
+      generationConfig: {
+        temperature: 0.8,
+        topP: 0.9,
+        topK: 40,
+        maxOutputTokens: 256,
+      },
+    });
+
+    const chat = model.startChat({
+      history: chatHistory,
+    });
+
+    const result = await chat.sendMessage(userMessage);
+    const response = result.response;
+    return response.text();
+  } catch (error) {
+    console.error('Gemini chat with memory error:', error);
+    throw new Error('AI 응답을 생성하는 중 오류가 발생했습니다.');
+  }
+};
+
 export default genAI;

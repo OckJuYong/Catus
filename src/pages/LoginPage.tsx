@@ -1,13 +1,15 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
 import { useAuth } from '../contexts/AuthContext';
+import { getKakaoOAuthUrlForMobile } from '../lib/supabase';
 import logincatImage from '../assets/images/logincat.png';
 
 export default function LoginPage() {
   const { signInWithKakao, isAuthenticated, isLoading, user } = useAuth();
   const navigate = useNavigate();
+  const [isLoginLoading, setIsLoginLoading] = useState(false);
 
   // 이미 로그인된 사용자는 홈으로 리다이렉트
   useEffect(() => {
@@ -23,10 +25,11 @@ export default function LoginPage() {
   }, [isAuthenticated, isLoading, user, navigate]);
 
   // 로딩 중일 때 스피너 표시
-  if (isLoading) {
+  if (isLoading || isLoginLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--color-main-bg)' }}>
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#59B464]"></div>
+        {isLoginLoading && <p className="mt-4 text-gray-500">카카오 로그인 중...</p>}
       </div>
     );
   }
@@ -34,14 +37,47 @@ export default function LoginPage() {
   const handleKakaoLogin = async (): Promise<void> => {
     const isNative = Capacitor.isNativePlatform();
 
-    console.log('카카오 로그인 시작 (Supabase Auth)');
+    console.log('카카오 로그인 시작');
     console.log('Platform:', isNative ? 'Native App' : 'Web');
 
     try {
-      // Supabase OAuth를 통한 카카오 로그인
-      await signInWithKakao();
+      if (isNative) {
+        // 📱 모바일 앱: 외부 브라우저에서 OAuth 진행
+        setIsLoginLoading(true);
+        console.log('모바일 OAuth URL 생성 중...');
+
+        const { url, error } = await getKakaoOAuthUrlForMobile();
+
+        if (error || !url) {
+          console.error('OAuth URL 생성 실패:', error);
+          setIsLoginLoading(false);
+          return;
+        }
+
+        console.log('브라우저에서 OAuth 열기:', url.substring(0, 50) + '...');
+
+        // 기존 리스너 제거 후 새로 등록
+        await Browser.removeAllListeners();
+
+        // 브라우저 닫힘 이벤트 리스너 (앱으로 돌아왔을 때)
+        Browser.addListener('browserFinished', () => {
+          console.log('브라우저 닫힘');
+          // 약간의 딜레이 후 로딩 해제 (딥링크 처리 시간 확보)
+          setTimeout(() => {
+            setIsLoginLoading(false);
+          }, 1000);
+        });
+
+        // 외부 브라우저에서 OAuth 열기
+        await Browser.open({ url, windowName: '_blank' });
+
+      } else {
+        // 🌐 웹: 기존 Supabase OAuth 플로우
+        await signInWithKakao();
+      }
     } catch (error) {
       console.error('카카오 로그인 실패:', error);
+      setIsLoginLoading(false);
     }
   };
 

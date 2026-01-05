@@ -278,6 +278,73 @@ export interface Database {
           created_at?: string;
         };
       };
+      user_memories: {
+        Row: {
+          id: number;
+          user_id: string;
+          category: 'personal_info' | 'preference' | 'event' | 'relationship' | 'habit' | 'other';
+          content: string;
+          importance: number; // 1-5 scale
+          source_date: string;
+          last_mentioned: string;
+          mention_count: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: number;
+          user_id: string;
+          category: 'personal_info' | 'preference' | 'event' | 'relationship' | 'habit' | 'other';
+          content: string;
+          importance?: number;
+          source_date?: string;
+          last_mentioned?: string;
+          mention_count?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: number;
+          user_id?: string;
+          category?: 'personal_info' | 'preference' | 'event' | 'relationship' | 'habit' | 'other';
+          content?: string;
+          importance?: number;
+          source_date?: string;
+          last_mentioned?: string;
+          mention_count?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      chat_summaries: {
+        Row: {
+          id: number;
+          user_id: string;
+          summary_date: string;
+          summary: string;
+          key_topics: string[];
+          emotion_trend: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: number;
+          user_id: string;
+          summary_date: string;
+          summary: string;
+          key_topics?: string[];
+          emotion_trend?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: number;
+          user_id?: string;
+          summary_date?: string;
+          summary?: string;
+          key_topics?: string[];
+          emotion_trend?: string | null;
+          created_at?: string;
+        };
+      };
     };
     Views: {
       [_ in never]: never;
@@ -307,3 +374,8 @@ export type ChatMessage = Tables<'chat_messages'>;
 export type Diary = Tables<'diaries'>;
 export type AnonymousMessage = Tables<'anonymous_messages'>;
 export type Big5Score = Tables<'big5_scores'>;
+export type UserMemory = Tables<'user_memories'>;
+export type ChatSummary = Tables<'chat_summaries'>;
+
+// Memory category type
+export type MemoryCategory = 'personal_info' | 'preference' | 'event' | 'relationship' | 'habit' | 'other';

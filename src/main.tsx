@@ -1,8 +1,17 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { SplashScreen } from '@capacitor/splash-screen'
+import { Capacitor } from '@capacitor/core'
 import './index.css'
 import App from './App'
+
+// 스플래시 화면 강제 숨기기 (앱 시작 시)
+if (Capacitor.isNativePlatform()) {
+  // 앱 시작 후 스플래시 화면 숨기기
+  SplashScreen.hide().catch(console.error);
+  console.log('[main.tsx] SplashScreen.hide() called');
+}
 
 // 에러를 화면에 표시하는 함수
 const showError = (error: unknown) => {

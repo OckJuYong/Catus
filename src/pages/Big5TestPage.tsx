@@ -31,8 +31,8 @@ export default function Big5TestPage() {
       // 로컬 스토리지에 Big5 완료 표시
       localStorage.setItem('catus_big5_completed', 'true');
 
-      // 홈으로 이동
-      navigate(ROUTES.HOME);
+      // 결과 페이지로 이동
+      navigate(ROUTES.BIG5_STATS);
     },
     onError: (error: any) => {
       console.error('❌ Big5 테스트 제출 실패:', error);
@@ -89,7 +89,17 @@ export default function Big5TestPage() {
   return (
     <div className="h-[100dvh] flex flex-col overflow-hidden" style={{ backgroundColor: 'var(--color-main-bg)' }}>
       {/* 헤더 + 진행도 */}
-      <div className="w-full flex flex-col items-center pt-[2vh] pb-[1vh]" style={{ backgroundColor: 'var(--color-main-bg)' }}>
+      <div className="w-full flex flex-col items-center pt-[2vh] pb-[1vh] relative" style={{ backgroundColor: 'var(--color-main-bg)' }}>
+        {/* 뒤로가기 버튼 */}
+        <button
+          onClick={() => navigate(-1)}
+          className="absolute left-[16px] top-[2vh] w-[44px] h-[44px] flex items-center justify-center bg-transparent border-0 cursor-pointer hover:opacity-70"
+          style={{ color: isDarkMode ? '#FFFFFF' : '#5E7057' }}
+          aria-label="뒤로 가기"
+        >
+          <span className="text-[24px]">←</span>
+        </button>
+
         {/* 제목 */}
         <h1 className="text-[clamp(22px,4vw,27px)] font-[600] text-center whitespace-nowrap mb-[0.5vh]" style={{ color: 'var(--color-text-primary)' }}>
           🧠 BIG5 성격 검사

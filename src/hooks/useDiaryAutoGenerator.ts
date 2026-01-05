@@ -6,7 +6,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
-import { chatApi, settingsApi, diaryApi } from '../utils/api';
+import { chatApi, settingsApi, diaryApi, memoryApi } from '../utils/api';
 import { queryKeys } from './useApi';
 
 // 로컬 스토리지 키
@@ -77,7 +77,7 @@ export const useDiaryAutoGenerator = () => {
   }, [getTodayString]);
 
   /**
-   * 일기 생성 실행
+   * 일기 생성 실행 + 메모리 추출 + 일일 요약 저장
    */
   const generateDiary = useCallback(async () => {
     if (isGeneratingRef.current) {
@@ -91,8 +91,42 @@ export const useDiaryAutoGenerator = () => {
     try {
       console.log('📝 일기 자동 생성 시작...');
 
-      // analyzeChat 호출 (오늘의 채팅 분석 및 일기 생성)
+      // 오늘의 채팅 데이터 가져오기 (메모리 추출용)
+      let todayMessages: Array<{ userMessage: string; aiResponse: string }> = [];
+      try {
+        const chatContext = await chatApi.getContextByDate(today);
+        todayMessages = chatContext.messages.map(m => ({
+          userMessage: m.userMessage,
+          aiResponse: m.aiResponse,
+        }));
+      } catch {
+        // 채팅 데이터 없으면 빈 배열
+      }
+
+      // 1. 일기 생성 (analyzeChat 호출)
       await chatApi.analyzeChat(today, today);
+
+      // 2. 장기 기억 추출 및 저장 (백그라운드)
+      if (todayMessages.length >= 3) {
+        memoryApi.extractAndSaveMemories(todayMessages)
+          .then(count => {
+            if (count > 0) {
+              console.log(`🧠 ${count}개의 새로운 기억 저장됨`);
+            }
+          })
+          .catch(err => console.error('메모리 추출 실패:', err));
+      }
+
+      // 3. 일일 대화 요약 저장 (백그라운드)
+      if (todayMessages.length >= 2) {
+        memoryApi.saveDailySummary(today, todayMessages)
+          .then(success => {
+            if (success) {
+              console.log('📋 일일 대화 요약 저장됨');
+            }
+          })
+          .catch(err => console.error('요약 저장 실패:', err));
+      }
 
       // 생성 완료 기록
       localStorage.setItem(LAST_GENERATION_KEY, today);

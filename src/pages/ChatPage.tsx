@@ -24,7 +24,33 @@ interface Message {
   type: 'user' | 'ai';
   text: string;
   timestamp: string;
+  chatDate?: string; // 날짜 구분용
 }
+
+// 날짜 포맷팅 (카카오톡 스타일)
+const formatDateLabel = (dateStr: string): string => {
+  const date = new Date(dateStr);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  const dateOnly = dateStr.split('T')[0];
+  const todayOnly = today.toISOString().split('T')[0];
+  const yesterdayOnly = yesterday.toISOString().split('T')[0];
+
+  if (dateOnly === todayOnly) {
+    return '오늘';
+  } else if (dateOnly === yesterdayOnly) {
+    return '어제';
+  } else {
+    return date.toLocaleDateString('ko-KR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      weekday: 'long',
+    });
+  }
+};
 
 export default function ChatPage() {
   const navigate = useNavigate();
@@ -221,42 +247,78 @@ export default function ChatPage() {
     setShowChatModal(true);
   }, []);
 
-  // IndexedDB에서 오늘의 메시지 로드
+  // 백엔드에서 7일치 대화 내역 로드
   useEffect(() => {
     const loadMessages = async () => {
       try {
-        const savedMessages = await getChatMessagesByDate(todayKey);
+        // 1. 백엔드에서 7일치 대화 내역 로드
+        const weekHistory = await chatApi.getWeekHistory();
 
-        if (savedMessages.length === 0) {
-          // 초기 AI 인사 메시지
+        if (weekHistory.length > 0) {
+          // 백엔드 데이터를 Message 포맷으로 변환
+          const convertedMessages: Message[] = [];
+
+          weekHistory.forEach((msg, idx) => {
+            // 사용자 메시지
+            convertedMessages.push({
+              id: msg.id * 2,
+              type: 'user',
+              text: msg.userMessage,
+              timestamp: msg.timestamp,
+              chatDate: msg.chatDate,
+            });
+            // AI 응답
+            convertedMessages.push({
+              id: msg.id * 2 + 1,
+              type: 'ai',
+              text: msg.aiResponse,
+              timestamp: msg.timestamp,
+              chatDate: msg.chatDate,
+            });
+          });
+
+          setMessages(convertedMessages);
+        } else {
+          // 대화 내역이 없으면 초기 인사 메시지
           const initialMessage: Message = {
             id: 1,
             type: "ai",
             text: "안녕! 오늘 하루는 어땠어? 무슨 일이 있었는지 들려줘!",
             timestamp: getISOTimestamp(),
+            chatDate: todayKey,
           };
 
           setMessages([initialMessage]);
-
-          // IndexedDB에 저장 (quota 체크 포함)
-          await saveChatMessageWithQuotaCheck(todayKey, {
-            role: 'assistant',
-            content: initialMessage.text,
-            timestamp: initialMessage.timestamp
-          }, false);
-        } else {
-          // 저장된 메시지를 Message 포맷으로 변환
-          const convertedMessages: Message[] = savedMessages.map((msg, idx) => ({
-            id: idx + 1,
-            type: msg.role === 'user' ? 'user' : 'ai',
-            text: msg.content,
-            timestamp: msg.timestamp
-          }));
-
-          setMessages(convertedMessages);
         }
       } catch (error) {
-        console.error('Failed to load messages from IndexedDB:', error);
+        console.error('Failed to load messages from backend:', error);
+
+        // 백엔드 실패 시 IndexedDB에서 오늘 메시지만 로드 (폴백)
+        try {
+          const savedMessages = await getChatMessagesByDate(todayKey);
+
+          if (savedMessages.length === 0) {
+            const initialMessage: Message = {
+              id: 1,
+              type: "ai",
+              text: "안녕! 오늘 하루는 어땠어? 무슨 일이 있었는지 들려줘!",
+              timestamp: getISOTimestamp(),
+              chatDate: todayKey,
+            };
+            setMessages([initialMessage]);
+          } else {
+            const convertedMessages: Message[] = savedMessages.map((msg, idx) => ({
+              id: idx + 1,
+              type: msg.role === 'user' ? 'user' : 'ai',
+              text: msg.content,
+              timestamp: msg.timestamp,
+              chatDate: todayKey,
+            }));
+            setMessages(convertedMessages);
+          }
+        } catch (dbError) {
+          console.error('Failed to load from IndexedDB:', dbError);
+        }
       }
     };
 
@@ -450,57 +512,85 @@ export default function ChatPage() {
           {/* 메시지 영역 */}
           <div className="flex-1 overflow-y-auto" style={{ paddingLeft: '16px', paddingRight: '16px', paddingTop: '16px', paddingBottom: '16px' }}>
         <AnimatePresence>
-          {messages.map((m) => (
-            <motion.div
-              key={m.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className={`flex items-start ${m.type === "user" ? "flex-row-reverse" : "flex-row"}`}
-              style={{ gap: '8px', marginBottom: '16px' }}
-            >
-              {m.type === "ai" && (
-                <div className="flex-shrink-0 flex items-center justify-center" style={{ width: '32px', height: '32px' }}>
-                  <img src={catProfile} alt="cat" className="object-contain" style={{ width: '32px', height: '32px' }} />
-                </div>
-              )}
-              <div className={`flex items-end ${m.type === "user" ? "flex-row-reverse" : ""}`} style={{ gap: '2px' }}>
-                <div
-                  className={`max-w-[200px] break-words ${
-                    m.type === "ai"
-                      ? "text-[white]"
-                      : "text-[white]"
-                  }`}
-                  style={m.type === "ai" ? {
-                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                    borderRadius: '16px',
-                    paddingLeft: '16px',
-                    paddingRight: '16px',
-                    paddingTop: '8px',
-                    paddingBottom: '8px',
-                    fontSize: '12px'
-                  } : {
-                    backgroundColor: 'rgba(150, 150, 150, 0.8)',
-                    borderRadius: '16px',
-                    paddingLeft: '16px',
-                    paddingRight: '16px',
-                    paddingTop: '8px',
-                    paddingBottom: '8px',
-                    fontSize: '14px'
-                  }}
+          {messages.map((m, idx) => {
+            // 날짜 구분선 표시 여부 확인
+            const prevMessage = idx > 0 ? messages[idx - 1] : null;
+            const currentDate = m.chatDate || m.timestamp.split('T')[0];
+            const prevDate = prevMessage ? (prevMessage.chatDate || prevMessage.timestamp.split('T')[0]) : null;
+            const showDateSeparator = currentDate !== prevDate;
+
+            return (
+              <div key={m.id}>
+                {/* 날짜 구분선 */}
+                {showDateSeparator && (
+                  <div className="flex items-center justify-center" style={{ marginTop: idx === 0 ? '0' : '20px', marginBottom: '20px' }}>
+                    <div style={{
+                      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                      borderRadius: '16px',
+                      paddingLeft: '16px',
+                      paddingRight: '16px',
+                      paddingTop: '6px',
+                      paddingBottom: '6px',
+                    }}>
+                      <span className="text-white text-xs">
+                        {formatDateLabel(currentDate)}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* 메시지 */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  className={`flex items-start ${m.type === "user" ? "flex-row-reverse" : "flex-row"}`}
+                  style={{ gap: '8px', marginBottom: '16px' }}
                 >
-                  {m.text}
-                </div>
-                <div className="text-xs text-[white]/60" style={{ fontSize: '10px', paddingBottom: '2px' }}>
-                  {new Date(m.timestamp).toLocaleTimeString("ko-KR", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    hour12: true,
-                  })}
-                </div>
+                  {m.type === "ai" && (
+                    <div className="flex-shrink-0 flex items-center justify-center" style={{ width: '32px', height: '32px' }}>
+                      <img src={catProfile} alt="cat" className="object-contain" style={{ width: '32px', height: '32px' }} />
+                    </div>
+                  )}
+                  <div className={`flex items-end ${m.type === "user" ? "flex-row-reverse" : ""}`} style={{ gap: '2px' }}>
+                    <div
+                      className={`max-w-[200px] break-words ${
+                        m.type === "ai"
+                          ? "text-[white]"
+                          : "text-[white]"
+                      }`}
+                      style={m.type === "ai" ? {
+                        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                        borderRadius: '16px',
+                        paddingLeft: '16px',
+                        paddingRight: '16px',
+                        paddingTop: '8px',
+                        paddingBottom: '8px',
+                        fontSize: '12px'
+                      } : {
+                        backgroundColor: 'rgba(150, 150, 150, 0.8)',
+                        borderRadius: '16px',
+                        paddingLeft: '16px',
+                        paddingRight: '16px',
+                        paddingTop: '8px',
+                        paddingBottom: '8px',
+                        fontSize: '14px'
+                      }}
+                    >
+                      {m.text}
+                    </div>
+                    <div className="text-xs text-[white]/60" style={{ fontSize: '10px', paddingBottom: '2px' }}>
+                      {new Date(m.timestamp).toLocaleTimeString("ko-KR", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: true,
+                      })}
+                    </div>
+                  </div>
+                </motion.div>
               </div>
-            </motion.div>
-          ))}
+            );
+          })}
         </AnimatePresence>
 
         {/* AI 타이핑 중 */}

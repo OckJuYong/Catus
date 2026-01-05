@@ -8,6 +8,7 @@ import { useQuery } from '@tanstack/react-query';
 import { big5Api } from '../utils/api';
 import { useDarkMode } from '../contexts/DarkModeContext';
 import { ROUTES } from '../constants/routes';
+import type { Big5Scores } from '../types';
 
 const BIG5_TRAITS = {
   openness: { name: '개방성', description: '새로운 경험에 열린 태도' },
@@ -18,7 +19,7 @@ const BIG5_TRAITS = {
 } as const;
 
 // 레이더 차트 컴포넌트
-const RadarChart = ({ scores, isDarkMode }: { scores: Record<string, number>; isDarkMode: boolean }) => {
+const RadarChart = ({ scores, isDarkMode }: { scores: Big5Scores; isDarkMode: boolean }) => {
   const size = 240;
   const center = size / 2;
   const radius = 80;
@@ -73,8 +74,8 @@ const RadarChart = ({ scores, isDarkMode }: { scores: Record<string, number>; is
 
   // 데이터 다각형 (점수를 100% 기준 퍼센트로 변환)
   const dataPoints = traits.map((trait, i) => {
-    const score = scores[trait] || 0;
-    const percentage = Math.min(100, score * 10); // 10점 만점을 100%로
+    const score = scores[trait as keyof Big5Scores] || 0;
+    const percentage = Math.min(100, score); // 이미 0-100 범위
     return getPoint(i, percentage);
   });
   const dataPolygon = dataPoints.map(p => `${p.x},${p.y}`).join(' ');
@@ -173,8 +174,8 @@ export default function Big5StatsPage() {
     );
   }
 
-  // 에러 또는 데이터 없음 - 테스트 안내
-  if (error || !currentData) {
+  // 에러 또는 데이터 없음 또는 테스트 미완료 - 테스트 안내
+  if (error || !currentData || !currentData.hasCompletedTest || !currentData.scores) {
     return (
       <div
         className="h-[100dvh] flex flex-col overflow-hidden"
@@ -182,13 +183,14 @@ export default function Big5StatsPage() {
       >
         {/* 헤더 */}
         <div
-          className="flex items-center justify-between px-[12px] py-[12px] flex-shrink-0"
+          className="flex items-center justify-between px-[12px] py-[8px] flex-shrink-0"
           style={{ backgroundColor: 'var(--color-bg-card)' }}
         >
           <button
             onClick={() => navigate(-1)}
-            className="hover:opacity-70 text-[20px] bg-transparent border-0"
-            style={{ marginTop: '-5px', color: isDarkMode ? '#FFFFFF' : '#5E7057' }}
+            className="w-[44px] h-[44px] flex items-center justify-center hover:opacity-70 text-[24px] bg-transparent border-0 cursor-pointer"
+            style={{ color: isDarkMode ? '#FFFFFF' : '#5E7057' }}
+            aria-label="뒤로 가기"
           >
             ←
           </button>
@@ -198,7 +200,7 @@ export default function Big5StatsPage() {
           >
             BIG5 성격 분석
           </div>
-          <div className="w-[20px]" />
+          <div className="w-[44px]" />
         </div>
 
         <div className="flex-1 flex items-center justify-center px-[16px]">
@@ -241,13 +243,14 @@ export default function Big5StatsPage() {
     >
       {/* 헤더 */}
       <div
-        className="flex items-center justify-between px-[12px] py-[12px] flex-shrink-0"
+        className="flex items-center justify-between px-[12px] py-[8px] flex-shrink-0"
         style={{ backgroundColor: 'var(--color-bg-card)' }}
       >
         <button
           onClick={() => navigate(-1)}
-          className="hover:opacity-70 text-[20px] bg-transparent border-0"
-          style={{ marginTop: '-5px', color: isDarkMode ? '#FFFFFF' : '#5E7057' }}
+          className="w-[44px] h-[44px] flex items-center justify-center hover:opacity-70 text-[24px] bg-transparent border-0 cursor-pointer"
+          style={{ color: isDarkMode ? '#FFFFFF' : '#5E7057' }}
+          aria-label="뒤로 가기"
         >
           ←
         </button>
@@ -257,7 +260,7 @@ export default function Big5StatsPage() {
         >
           BIG5 성격 분석
         </div>
-        <div className="w-[20px]" />
+        <div className="w-[44px]" />
       </div>
 
       {/* 성격 점수 - 스크롤 영역 */}

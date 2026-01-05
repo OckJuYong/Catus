@@ -10,8 +10,8 @@
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
 
-    <!-- Content Security Policy - Supabase 연결 허용 -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' data: https: blob:; connect-src 'self' https://vplhnjknctzpbhikyttr.supabase.co https://*.supabase.co wss://*.supabase.co https://kauth.kakao.com https://kapi.kakao.com https://generativelanguage.googleapis.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self';">
+    <!-- Content Security Policy - 모바일 앱 호환 (file://, capacitor://, https: 모두 허용) -->
+    <meta http-equiv="Content-Security-Policy" content="default-src * 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; script-src * 'self' 'unsafe-inline' 'unsafe-eval'; style-src * 'self' 'unsafe-inline'; font-src * 'self' data:; img-src * 'self' data: blob:; connect-src * 'self' data: blob:;">
 
     <title>catus</title>
     <!-- ✅ Material Symbols variable font -->
@@ -34,6 +34,7 @@
   </head>
   <body>
     <div id="root"></div>
+    <noscript>JavaScript가 비활성화되었습니다</noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
