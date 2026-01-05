@@ -1,6 +1,7 @@
 /**
  * API 호출 유틸리티
  * Supabase + Gemini 기반 클라이언트
+ * Updated: 2026-01-05
  */
 
 import { supabase, signInWithKakao, signOut, getCurrentUser, getSession } from '../lib/supabase';
