@@ -459,6 +459,9 @@ export const chatApi = {
     // Analyze emotion with Gemini
     const { emotion, summary } = await analyzeChatEmotion(messageData);
 
+    // Big5 성격 분석 (ChatAnalysisResponse에 필요)
+    const big5Analysis = await analyzeBig5FromChat(messageData);
+
     // 🔬 연구용: 심리 분석 (고립감/웰빙) 병렬 실행
     const psychologyAnalysis = analyzeConversationPsychology(messageData);
 
@@ -524,9 +527,21 @@ export const chatApi = {
     }
 
     return {
-      diaryId: diary.id,
-      emotion,
+      period: {
+        start: startDate,
+        end: endDate,
+      },
+      emotionScores: {
+        openness: big5Analysis.openness,
+        conscientiousness: big5Analysis.conscientiousness,
+        extraversion: big5Analysis.extraversion,
+        agreeableness: big5Analysis.agreeableness,
+        neuroticism: big5Analysis.neuroticism,
+      },
       summary,
+      // 추가 정보 (기존 호환성)
+      diaryId: diary?.id,
+      emotion,
       generatedAt: new Date().toISOString(),
     };
   },
