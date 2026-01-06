@@ -72,14 +72,17 @@ const generateMessage = (emotion) => {
 };
 
 export default async function handler(req, res) {
-  // Vercel Cron 인증 확인
+  // 인증 확인 (헤더 또는 쿼리 파라미터)
   const authHeader = req.headers.authorization;
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    // 로컬 테스트용 API 키 체크
-    const apiKey = req.headers['x-bot-api-key'];
-    if (apiKey !== process.env.BOT_API_SECRET) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
+  const apiKeyHeader = req.headers['x-bot-api-key'];
+  const apiKeyQuery = req.query.key;
+
+  const isValidCron = authHeader === `Bearer ${process.env.CRON_SECRET}`;
+  const isValidApiKey = (apiKeyHeader === process.env.BOT_API_SECRET) ||
+                        (apiKeyQuery === process.env.BOT_API_SECRET);
+
+  if (!isValidCron && !isValidApiKey) {
+    return res.status(401).json({ error: 'Unauthorized' });
   }
 
   console.log('🤖 Bot Cron Job Started:', new Date().toISOString());
