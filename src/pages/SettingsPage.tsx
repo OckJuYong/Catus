@@ -664,20 +664,6 @@ function SettingsPage() {
             </div>
         </div>
 
-        {/* 나의 기록 */}
-        <div style={{ marginBottom: '32px' }}>
-          <h3 className="text-[#999] font-semibold text-center" style={{ fontSize: '12px', margin: '0 0 8px 0', paddingLeft: '16px', paddingRight: '16px' }}>나의 기록</h3>
-          <div className="bg-[white]" style={{ borderRadius: '16px', paddingTop: '8px', paddingBottom: '8px', paddingLeft: '16px', paddingRight: '16px', marginBottom: '8px' }}>
-            {/* 달이와의 시간 (웰니스 통계) */}
-            <div className="flex justify-between items-center cursor-pointer transition-all active:scale-98" style={{ paddingTop: '16px', paddingBottom: '16px' }} onClick={() => navigate(ROUTES.WELLNESS_STATS)}>
-              <div className="flex items-center gap-[12px]">
-                <span style={{ fontSize: '20px' }}>💚</span>
-                <span className="text-[#333]" style={{ fontSize: '15px' }}>달이와의 시간</span>
-              </div>
-              <span className="text-[#999]" style={{ fontSize: '18px' }}>›</span>
-            </div>
-          </div>
-        </div>
 
         {/* 기타 */}
         <div style={{ marginBottom: '8px' }}>
