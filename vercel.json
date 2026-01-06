@@ -59,6 +59,20 @@
     "api/proxy-v2.js": {
       "memory": 1024,
       "maxDuration": 30
+    },
+    "api/bot-system.js": {
+      "memory": 1024,
+      "maxDuration": 60
+    },
+    "api/bot-cron.js": {
+      "memory": 512,
+      "maxDuration": 60
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/bot-cron",
+      "schedule": "0 */3 * * *"
+    }
+  ]
 }
