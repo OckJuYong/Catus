@@ -67,6 +67,10 @@
     "api/bot-cron.js": {
       "memory": 512,
       "maxDuration": 60
+    },
+    "api/bot-chat.js": {
+      "memory": 1024,
+      "maxDuration": 60
     }
   }
 }
