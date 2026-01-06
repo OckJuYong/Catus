@@ -32,6 +32,7 @@ import RandomDiaryPage from './pages/RandomDiaryPage';
 import Big5StatsPage from './pages/Big5StatsPage';
 import GeneralLoginPage from './pages/GeneralLoginPage';
 import GeneralSignupPage from './pages/GeneralSignupPage';
+import AdminDashboardPage from './pages/AdminDashboardPage';
 
 // Deep Link 처리 컴포넌트
 function DeepLinkHandler() {
@@ -180,6 +181,7 @@ function App() {
                 <Route path="/auth/kakao/callback" element={<KakaoCallbackPage />} />
                 <Route path="/auth/kakao/mobile-callback" element={<KakaoMobileCallbackPage />} />
                 <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+                <Route path="/admin/catus2024" element={<AdminDashboardPage />} />
 
                 {/* Protected Routes */}
                 <Route path="/onboarding" element={<PrivateRoute><Onboarding /></PrivateRoute>} />
