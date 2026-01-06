@@ -33,7 +33,7 @@ import type {
   MonthlyStats,
   OnboardingData,
 } from '../types';
-import type { Emotion, MemoryCategory } from '../types/database';
+import type { Emotion, MemoryCategory, WellnessAssessmentType } from '../types/database';
 
 /**
  * API 에러 클래스
@@ -121,6 +121,7 @@ export const authApi = {
     return {
       accessToken: session.access_token,
       refreshToken: session.refresh_token || '',
+      userId: session.user.id,  // userId 직접 반환
       user: userData ? {
         id: userData.id,
         nickname: userData.nickname,
@@ -674,14 +675,14 @@ export const diaryApi = {
     return { message: '일기가 삭제되었습니다.' };
   },
 
-  // 랜덤 일기 조회
-  getRandom: async (): Promise<{ diaryId: number; title: string; date: string; previewText: string; thumbnailUrl: string }> => {
+  // 랜덤 일기 조회 (그림과 기분만 - 글 내용은 비공개)
+  getRandom: async (): Promise<{ diaryId: number; title: string; date: string; emotion: string; thumbnailUrl: string }> => {
     const userId = await getCurrentUserId();
 
-    // Get a random public diary (not from current user)
+    // Get a random public diary (not from current user) - 글 내용 제외
     const { data, error } = await supabase
       .from('diaries')
-      .select('id, title, diary_date, content_preview, thumbnail_url, image_url')
+      .select('id, title, diary_date, emotion, thumbnail_url, image_url')
       .eq('is_public', true)
       .neq('user_id', userId)
       .limit(100);
@@ -698,7 +699,7 @@ export const diaryApi = {
       diaryId: diary.id,
       title: diary.title || '오늘의 일기',
       date: diary.diary_date,
-      previewText: diary.content_preview || '',
+      emotion: diary.emotion || '',
       thumbnailUrl: diary.thumbnail_url || diary.image_url || '',
     };
   },
@@ -708,13 +709,14 @@ export const diaryApi = {
  * 💌 익명 메시지 API
  */
 export const messageApi = {
-  // 받은 메시지 조회
-  getReceived: async (page: number = 0, size: number = 20): Promise<{ messages: Array<{ id: number; content: string; diaryId: number; receivedAt: string; isRead: boolean }>; totalPages: number; unreadCount: number }> => {
+  // 받은 메시지 조회 (diary 이미지 포함)
+  getReceived: async (page: number = 0, size: number = 20): Promise<{ messages: Array<{ id: number; content: string; diaryId: number; receivedAt: string; isRead: boolean; thumbnailUrl?: string }>; totalPages: number; unreadCount: number }> => {
     const userId = await getCurrentUserId();
 
+    // diary 테이블과 조인하여 이미지 URL도 함께 가져옴
     const { data, error, count } = await supabase
       .from('anonymous_messages')
-      .select('id, content, diary_id, created_at, is_read', { count: 'exact' })
+      .select('id, content, diary_id, created_at, is_read, diaries(image_url, thumbnail_url)', { count: 'exact' })
       .eq('receiver_id', userId)
       .order('created_at', { ascending: false })
       .range(page * size, (page + 1) * size - 1);
@@ -731,13 +733,17 @@ export const messageApi = {
       .eq('is_read', false);
 
     return {
-      messages: (data || []).map(msg => ({
-        id: msg.id,
-        content: msg.content,
-        diaryId: msg.diary_id,
-        receivedAt: msg.created_at,
-        isRead: msg.is_read,
-      })),
+      messages: (data || []).map(msg => {
+        const diary = (msg as any).diaries;
+        return {
+          id: msg.id,
+          content: msg.content,
+          diaryId: msg.diary_id,
+          receivedAt: msg.created_at,
+          isRead: msg.is_read,
+          thumbnailUrl: diary?.thumbnail_url || diary?.image_url || undefined,
+        };
+      }),
       totalPages: Math.ceil((count || 0) / size),
       unreadCount: unreadCount || 0,
     };
@@ -1688,6 +1694,279 @@ export const researchApi = {
 };
 
 /**
+ * 🌟 웰니스 측정 API (효과성 측정)
+ */
+export const wellnessApi = {
+  // 웰니스 평가 저장 (온보딩, 마일스톤)
+  saveAssessment: async (data: {
+    assessmentType: WellnessAssessmentType;
+    lonelinessScore?: number;
+    satisfactionScore?: number;
+    improvementScore?: number;
+  }): Promise<{ id: number; message: string }> => {
+    const userId = await getCurrentUserId();
+
+    const { data: result, error } = await supabase
+      .from('wellness_assessments')
+      .upsert({
+        user_id: userId,
+        assessment_type: data.assessmentType,
+        loneliness_score: data.lonelinessScore,
+        satisfaction_score: data.satisfactionScore,
+        improvement_score: data.improvementScore,
+      }, {
+        onConflict: 'user_id,assessment_type',
+      })
+      .select('id')
+      .maybeSingle();
+
+    if (error) {
+      throw new ApiError('웰니스 평가 저장에 실패했습니다.', 500, error);
+    }
+
+    return {
+      id: result?.id || 0,
+      message: '웰니스 평가가 저장되었습니다.',
+    };
+  },
+
+  // 웰니스 평가 조회
+  getAssessment: async (assessmentType: WellnessAssessmentType): Promise<{
+    lonelinessScore: number | null;
+    satisfactionScore: number | null;
+    improvementScore: number | null;
+    createdAt: string | null;
+  } | null> => {
+    const userId = await getCurrentUserId();
+
+    const { data, error } = await supabase
+      .from('wellness_assessments')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('assessment_type', assessmentType)
+      .maybeSingle();
+
+    if (error || !data) {
+      return null;
+    }
+
+    return {
+      lonelinessScore: data.loneliness_score,
+      satisfactionScore: data.satisfaction_score,
+      improvementScore: data.improvement_score,
+      createdAt: data.created_at,
+    };
+  },
+
+  // 모든 웰니스 평가 조회 (변화 추이용)
+  getAllAssessments: async (): Promise<Array<{
+    assessmentType: WellnessAssessmentType;
+    lonelinessScore: number | null;
+    satisfactionScore: number | null;
+    improvementScore: number | null;
+    createdAt: string;
+  }>> => {
+    const userId = await getCurrentUserId();
+
+    const { data, error } = await supabase
+      .from('wellness_assessments')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      return [];
+    }
+
+    return (data || []).map(d => ({
+      assessmentType: d.assessment_type as WellnessAssessmentType,
+      lonelinessScore: d.loneliness_score,
+      satisfactionScore: d.satisfaction_score,
+      improvementScore: d.improvement_score,
+      createdAt: d.created_at,
+    }));
+  },
+
+  // 일일 기분 체크 저장
+  saveDailyMood: async (moodScore: number, wantsToTalk: boolean = false): Promise<{ id: number }> => {
+    const userId = await getCurrentUserId();
+    const today = formatDate(new Date());
+
+    const { data, error } = await supabase
+      .from('daily_mood_checks')
+      .upsert({
+        user_id: userId,
+        check_date: today,
+        mood_score: moodScore,
+        wants_to_talk: wantsToTalk,
+      }, {
+        onConflict: 'user_id,check_date',
+      })
+      .select('id')
+      .maybeSingle();
+
+    if (error) {
+      throw new ApiError('기분 체크 저장에 실패했습니다.', 500, error);
+    }
+
+    return { id: data?.id || 0 };
+  },
+
+  // 오늘 기분 체크 여부 확인
+  hasTodayMoodCheck: async (): Promise<boolean> => {
+    const userId = await getCurrentUserId();
+    const today = formatDate(new Date());
+
+    const { data } = await supabase
+      .from('daily_mood_checks')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('check_date', today)
+      .maybeSingle();
+
+    return !!data;
+  },
+
+  // 기분 체크 히스토리 조회
+  getMoodHistory: async (days: number = 30): Promise<Array<{
+    date: string;
+    moodScore: number;
+    wantsToTalk: boolean;
+  }>> => {
+    const userId = await getCurrentUserId();
+    const startDate = formatDate(new Date(Date.now() - days * 24 * 60 * 60 * 1000));
+
+    const { data, error } = await supabase
+      .from('daily_mood_checks')
+      .select('*')
+      .eq('user_id', userId)
+      .gte('check_date', startDate)
+      .order('check_date', { ascending: true });
+
+    if (error) {
+      return [];
+    }
+
+    return (data || []).map(d => ({
+      date: d.check_date,
+      moodScore: d.mood_score,
+      wantsToTalk: d.wants_to_talk,
+    }));
+  },
+
+  // 마일스톤 체크 (1주, 1개월, 3개월)
+  checkMilestone: async (): Promise<{
+    milestone: WellnessAssessmentType | null;
+    daysUsed: number;
+    needsAssessment: boolean;
+  }> => {
+    const userId = await getCurrentUserId();
+
+    // 사용자 생성일 조회
+    const { data: user } = await supabase
+      .from('users')
+      .select('created_at')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (!user) {
+      return { milestone: null, daysUsed: 0, needsAssessment: false };
+    }
+
+    const createdAt = new Date(user.created_at);
+    const now = new Date();
+    const daysUsed = Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
+
+    // 마일스톤 결정
+    let milestone: WellnessAssessmentType | null = null;
+    if (daysUsed >= 90) {
+      milestone = 'milestone_3m';
+    } else if (daysUsed >= 30) {
+      milestone = 'milestone_1m';
+    } else if (daysUsed >= 7) {
+      milestone = 'milestone_1w';
+    }
+
+    if (!milestone) {
+      return { milestone: null, daysUsed, needsAssessment: false };
+    }
+
+    // 이미 해당 마일스톤 평가를 완료했는지 확인
+    const { data: existing } = await supabase
+      .from('wellness_assessments')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('assessment_type', milestone)
+      .maybeSingle();
+
+    return {
+      milestone,
+      daysUsed,
+      needsAssessment: !existing,
+    };
+  },
+
+  // 효과성 통계 계산
+  getEffectivenessStats: async (): Promise<{
+    lonelinessChange: number | null; // 온보딩 대비 변화율
+    avgMoodScore: number | null; // 평균 기분 점수
+    positiveEmotionRatio: number; // 긍정 감정 일기 비율
+    engagementScore: number; // 사용 참여도
+    daysActive: number; // 활성 사용일
+    totalDays: number; // 전체 기간
+  }> => {
+    const userId = await getCurrentUserId();
+
+    // 병렬로 데이터 조회
+    const [assessments, moodHistory, diaries, chatMessages, user] = await Promise.all([
+      wellnessApi.getAllAssessments(),
+      wellnessApi.getMoodHistory(90),
+      supabase.from('diaries').select('emotion').eq('user_id', userId),
+      supabase.from('chat_messages').select('chat_date').eq('user_id', userId),
+      supabase.from('users').select('created_at').eq('id', userId).maybeSingle(),
+    ]);
+
+    // 외로움 변화 계산
+    const onboarding = assessments.find(a => a.assessmentType === 'onboarding');
+    const latest = assessments.filter(a => a.assessmentType !== 'onboarding').pop();
+    let lonelinessChange: number | null = null;
+    if (onboarding?.lonelinessScore && latest?.lonelinessScore) {
+      lonelinessChange = ((onboarding.lonelinessScore - latest.lonelinessScore) / onboarding.lonelinessScore) * 100;
+    }
+
+    // 평균 기분 점수
+    const avgMoodScore = moodHistory.length > 0
+      ? moodHistory.reduce((sum, m) => sum + m.moodScore, 0) / moodHistory.length
+      : null;
+
+    // 긍정 감정 비율
+    const diaryData = diaries.data || [];
+    const positiveCount = diaryData.filter(d => d.emotion === '행복').length;
+    const positiveEmotionRatio = diaryData.length > 0 ? (positiveCount / diaryData.length) * 100 : 0;
+
+    // 활성 사용일 (고유 채팅 날짜)
+    const chatDates = new Set((chatMessages.data || []).map(c => c.chat_date));
+    const daysActive = chatDates.size;
+
+    // 전체 기간
+    const createdAt = user.data ? new Date(user.data.created_at) : new Date();
+    const totalDays = Math.max(1, Math.floor((Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24)));
+
+    // 참여도 점수 (0-100)
+    const engagementScore = Math.min(100, Math.round((daysActive / totalDays) * 100));
+
+    return {
+      lonelinessChange,
+      avgMoodScore,
+      positiveEmotionRatio,
+      engagementScore,
+      daysActive,
+      totalDays,
+    };
+  },
+};
+
+/**
  * API 클라이언트 객체
  */
 const api = {
@@ -1702,9 +1981,66 @@ const api = {
   stats: statsApi,
   memory: memoryApi, // 장기 기억 API
   research: researchApi, // 연구용 API
+  wellness: wellnessApi, // 효과성 측정 API
 };
 
 export default api;
+
+/**
+ * 🔧 관리자 유틸리티 API (일회성 작업용)
+ */
+export const adminApi = {
+  // 이미지 없는 일기 조회
+  getDiariesWithoutImages: async (): Promise<Array<{ id: number; diaryDate: string; title: string; userId: string }>> => {
+    const { data, error } = await supabase
+      .from('diaries')
+      .select('id, diary_date, title, user_id')
+      .or('image_url.is.null,image_url.eq.')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw new ApiError('조회 실패', 500, error);
+    }
+
+    return (data || []).map(d => ({
+      id: d.id,
+      diaryDate: d.diary_date,
+      title: d.title,
+      userId: d.user_id,
+    }));
+  },
+
+  // 이미지 없는 일기 삭제
+  deleteDiariesWithoutImages: async (): Promise<{ deletedCount: number; deletedIds: number[] }> => {
+    // 먼저 삭제할 일기 ID 조회
+    const { data: toDelete, error: selectError } = await supabase
+      .from('diaries')
+      .select('id')
+      .or('image_url.is.null,image_url.eq.');
+
+    if (selectError) {
+      throw new ApiError('조회 실패', 500, selectError);
+    }
+
+    const idsToDelete = (toDelete || []).map(d => d.id);
+
+    if (idsToDelete.length === 0) {
+      return { deletedCount: 0, deletedIds: [] };
+    }
+
+    // 삭제 실행
+    const { error: deleteError } = await supabase
+      .from('diaries')
+      .delete()
+      .in('id', idsToDelete);
+
+    if (deleteError) {
+      throw new ApiError('삭제 실패', 500, deleteError);
+    }
+
+    return { deletedCount: idsToDelete.length, deletedIds: idsToDelete };
+  },
+};
 
 // User 타입 임포트를 위한 인터페이스
 interface User {

@@ -4,14 +4,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useDarkMode } from '../contexts/DarkModeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import { ROUTES } from '../constants/routes';
 import { useSettings, useUpdateProfile, useUpdateNotifications, useUpdateDiaryTime, useUpdateTheme } from '../hooks/useApi';
-import { researchApi } from '../utils/api';
 
 // localStorage 키 상수
 const STORAGE_KEYS = {
   DIARY_NOTIFICATION: 'catus_diary_notification',
   AI_STYLE: 'catus_ai_style',
-  RESEARCH_CONSENT: 'catus_research_consent',
 } as const;
 
 interface ExpandedItems {
@@ -71,11 +70,6 @@ function SettingsPage() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveType, setSaveType] = useState<SaveType>('');
 
-  // 연구 동의 상태
-  const [researchConsent, setResearchConsent] = useState({
-    dataCollection: false,
-    researchUse: false,
-  });
 
   // 개별 항목 토글 (한 번에 하나씩만 열림)
   const toggleItem = (item: keyof ExpandedItems): void => {
@@ -331,50 +325,7 @@ function SettingsPage() {
     }
   }, []);
 
-  // 연구 동의 상태 불러오기
-  useEffect(() => {
-    const savedConsent = localStorage.getItem(STORAGE_KEYS.RESEARCH_CONSENT);
-    if (savedConsent) {
-      try {
-        const parsed = JSON.parse(savedConsent);
-        setResearchConsent(parsed);
-      } catch (e) {
-        console.error('Failed to parse research consent:', e);
-      }
-    }
-  }, []);
 
-  // 연구 동의 토글
-  const handleToggleResearchConsent = async (type: 'dataCollection' | 'researchUse'): Promise<void> => {
-    const newValue = !researchConsent[type];
-    const newConsent = {
-      ...researchConsent,
-      [type]: newValue,
-    };
-
-    // 즉시 UI 업데이트
-    setResearchConsent(newConsent);
-
-    // 로컬 스토리지에 저장
-    try {
-      localStorage.setItem(STORAGE_KEYS.RESEARCH_CONSENT, JSON.stringify(newConsent));
-    } catch (e) {
-      console.error('Failed to save research consent to localStorage:', e);
-    }
-
-    // 백엔드에 저장
-    try {
-      await researchApi.saveResearchConsent({
-        consentDataCollection: newConsent.dataCollection,
-        consentResearchUse: newConsent.researchUse,
-        consentAnonymizedSharing: newConsent.researchUse, // 연구 사용 동의와 동일하게 처리
-      });
-      console.log('✅ [Settings] 연구 동의 저장 성공');
-    } catch (error) {
-      console.error('❌ [Settings] 연구 동의 저장 실패:', error);
-      // 백엔드 실패해도 로컬 설정은 유지
-    }
-  };
 
   // 모달 닫기 핸들러
   const handleCloseModal = (): void => {
@@ -713,70 +664,19 @@ function SettingsPage() {
             </div>
         </div>
 
-        {/* 연구 참여 */}
+        {/* 나의 기록 */}
         <div style={{ marginBottom: '32px' }}>
-          <h3 className="text-[#999] font-semibold text-center" style={{ fontSize: '12px', margin: '0 0 8px 0', paddingLeft: '16px', paddingRight: '16px' }}>연구 참여</h3>
+          <h3 className="text-[#999] font-semibold text-center" style={{ fontSize: '12px', margin: '0 0 8px 0', paddingLeft: '16px', paddingRight: '16px' }}>나의 기록</h3>
           <div className="bg-[white]" style={{ borderRadius: '16px', paddingTop: '8px', paddingBottom: '8px', paddingLeft: '16px', paddingRight: '16px', marginBottom: '8px' }}>
-              {/* 안내 문구 */}
-              <div style={{ paddingTop: '12px', paddingBottom: '12px', borderBottom: '1px solid #f0f0f0' }}>
-                <p className="text-[#666]" style={{ fontSize: '13px', margin: 0, lineHeight: '1.5' }}>
-                  캐터스는 1인가구와 청년의 정서적 건강 연구를 진행하고 있어요.
-                  동의하시면 익명화된 대화 분석 데이터가 연구에 활용됩니다.
-                </p>
+            {/* 달이와의 시간 (웰니스 통계) */}
+            <div className="flex justify-between items-center cursor-pointer transition-all active:scale-98" style={{ paddingTop: '16px', paddingBottom: '16px' }} onClick={() => navigate(ROUTES.WELLNESS_STATS)}>
+              <div className="flex items-center gap-[12px]">
+                <span style={{ fontSize: '20px' }}>💚</span>
+                <span className="text-[#333]" style={{ fontSize: '15px' }}>달이와의 시간</span>
               </div>
-
-              {/* 데이터 수집 동의 */}
-              <div className="flex justify-between items-center" style={{ paddingTop: '16px', paddingBottom: '16px', borderBottom: '1px solid #f0f0f0' }}>
-                <div>
-                  <span className="text-[#333]" style={{ fontSize: '15px', display: 'block' }}>데이터 수집 동의</span>
-                  <span className="text-[#999]" style={{ fontSize: '12px' }}>감정 분석 데이터 수집</span>
-                </div>
-                <div
-                  onClick={() => handleToggleResearchConsent('dataCollection')}
-                  className={`relative w-[51px] h-[31px] rounded-full cursor-pointer transition-all duration-300 flex-shrink-0 ${
-                    researchConsent.dataCollection ? "bg-[#a3b899]" : "bg-[#D1D5DB]"
-                  }`}
-                  style={{
-                    boxShadow: "inset 0 1px 3px rgba(0, 0, 0, 0.1)"
-                  }}
-                >
-                  <div
-                    className={`absolute top-[3px] w-[25px] h-[25px] bg-[#FFFFFF] rounded-full transition-all duration-300 ${
-                      researchConsent.dataCollection ? "left-[23px]" : "left-[3px]"
-                    }`}
-                    style={{
-                      boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)"
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* 연구 활용 동의 */}
-              <div className="flex justify-between items-center" style={{ paddingTop: '16px', paddingBottom: '16px' }}>
-                <div>
-                  <span className="text-[#333]" style={{ fontSize: '15px', display: 'block' }}>연구 활용 동의</span>
-                  <span className="text-[#999]" style={{ fontSize: '12px' }}>익명 통계 연구 활용</span>
-                </div>
-                <div
-                  onClick={() => handleToggleResearchConsent('researchUse')}
-                  className={`relative w-[51px] h-[31px] rounded-full cursor-pointer transition-all duration-300 flex-shrink-0 ${
-                    researchConsent.researchUse ? "bg-[#a3b899]" : "bg-[#D1D5DB]"
-                  }`}
-                  style={{
-                    boxShadow: "inset 0 1px 3px rgba(0, 0, 0, 0.1)"
-                  }}
-                >
-                  <div
-                    className={`absolute top-[3px] w-[25px] h-[25px] bg-[#FFFFFF] rounded-full transition-all duration-300 ${
-                      researchConsent.researchUse ? "left-[23px]" : "left-[3px]"
-                    }`}
-                    style={{
-                      boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)"
-                    }}
-                  />
-                </div>
-              </div>
+              <span className="text-[#999]" style={{ fontSize: '18px' }}>›</span>
             </div>
+          </div>
         </div>
 
         {/* 기타 */}

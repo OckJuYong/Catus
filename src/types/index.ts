@@ -10,7 +10,13 @@ export interface LoginResponse {
   accessToken: string;
   refreshToken: string;
   isNewUser: boolean;
-  userId: number;
+  userId: string;  // Supabase UUID
+  user: {
+    id: string;
+    nickname: string;
+    profileImage?: string;
+    createdAt: string;
+  };
 }
 
 export interface SignupData {
@@ -21,7 +27,7 @@ export interface SignupData {
 
 export interface SignupResponse {
   message: string;
-  userId: number;
+  userId: string;  // Supabase UUID
 }
 
 export interface VerificationCodeResponse {
@@ -36,10 +42,12 @@ export interface RefreshTokenResponse {
 
 // ===== 사용자 관련 타입 =====
 export interface User {
-  id: number;
+  id: string;  // Supabase UUID
   nickname: string;
+  email?: string;
   profileImage?: string;
   createdAt: string;
+  onboardingCompleted?: boolean;
 }
 
 // OnboardingData = SignupData (백엔드 /api/auth/signup 사용)
@@ -148,12 +156,12 @@ export interface DiaryUpdateData {
   isPublic?: boolean; // 공개 여부
 }
 
-// 백엔드: GET /api/diary/random 응답
+// 백엔드: GET /api/diary/random 응답 (그림과 기분만 - 글 내용 비공개)
 export interface DiaryRandomResponse {
   diaryId: number;
   title: string;
   date: string;
-  previewText: string;
+  emotion: string;
   thumbnailUrl: string;
 }
 

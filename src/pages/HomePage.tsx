@@ -9,8 +9,6 @@ import { useLocalStorage } from "../hooks/useLocalStorage";
 import { messageApi, diaryApi } from "../utils/api";
 import Tutorial from "./Tutorial";
 import api from "../utils/api";
-import DailyMoodCheck from "../components/DailyMoodCheck";
-import { useDailyMoodCheck } from "../hooks/useDailyMoodCheck";
 
 import catImage from "../assets/images/cat1.png";
 import catMessageImage from "../assets/images/cat_message.png";
@@ -59,12 +57,6 @@ export default function HomePage({ hideButtons = false, backgroundOnly = false }
   // 랜덤 일기 존재 여부 (백엔드에서 플래그 받아올 때까지 false)
   const [hasRandomDiary, setHasRandomDiary] = useState(false);
 
-  // ====== 웰니스 체크 훅 ======
-  const {
-    shouldShowMoodCheck,
-    saveMood,
-    dismissMoodCheck,
-  } = useDailyMoodCheck();
 
   // ====== 백엔드 API로 unreadCount 조회 ======
   const { data: messagesData } = useQuery({
@@ -219,14 +211,6 @@ const hasNewMessage = unreadCount > 0;
     navigate(ROUTES.MESSAGES);
   };
 
-  // 일일 기분 체크 완료
-  const handleMoodSelect = async (moodScore: number, wantsToTalk?: boolean) => {
-    await saveMood(moodScore, wantsToTalk);
-    if (wantsToTalk) {
-      // "얘기하고 싶어" 선택 시 채팅으로 이동
-      navigate(ROUTES.CHAT);
-    }
-  };
 
   // ====== 튜토리얼 자동 시작 ======
   useEffect(() => {
@@ -784,14 +768,6 @@ const hasNewMessage = unreadCount > 0;
         </div>
       )}
 
-      {/* 일일 기분 체크 모달 */}
-      {!backgroundOnly && (
-        <DailyMoodCheck
-          isVisible={shouldShowMoodCheck && !isAnyTutorialActive}
-          onSelectMood={handleMoodSelect}
-          onDismiss={dismissMoodCheck}
-        />
-      )}
     </div>
   );
 }

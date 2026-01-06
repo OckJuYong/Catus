@@ -345,6 +345,58 @@ export interface Database {
           created_at?: string;
         };
       };
+      wellness_assessments: {
+        Row: {
+          id: number;
+          user_id: string;
+          loneliness_score: number | null;
+          satisfaction_score: number | null;
+          improvement_score: number | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: number;
+          user_id: string;
+          loneliness_score?: number | null;
+          satisfaction_score?: number | null;
+          improvement_score?: number | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: number;
+          user_id?: string;
+          loneliness_score?: number | null;
+          satisfaction_score?: number | null;
+          improvement_score?: number | null;
+          created_at?: string;
+        };
+      };
+      daily_mood_checks: {
+        Row: {
+          id: number;
+          user_id: string;
+          check_date: string;
+          mood_score: number;
+          wants_to_talk: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: number;
+          user_id: string;
+          check_date: string;
+          mood_score: number;
+          wants_to_talk?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: number;
+          user_id?: string;
+          check_date?: string;
+          mood_score?: number;
+          wants_to_talk?: boolean;
+          created_at?: string;
+        };
+      };
     };
     Views: {
       [_ in never]: never;

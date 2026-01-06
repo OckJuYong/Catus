@@ -3,10 +3,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import catImage from "../assets/images/cat.png";
 import footprintIcon from "../assets/images/footprint.svg";
-import api, { researchApi, userApi } from "../utils/api";
+import api, { researchApi, userApi, wellnessApi } from "../utils/api";
 import { useToast } from "../contexts/ToastContext";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabase";
+import type { WellnessAssessmentType } from "../types/database";
 
 export default function OnboardingPage() {
   const navigate = useNavigate();
@@ -18,14 +19,24 @@ export default function OnboardingPage() {
   const [isWaiting, setIsWaiting] = useState(true);
   const [showInput, setShowInput] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showConsent, setShowConsent] = useState(false);
+  const [consentValues, setConsentValues] = useState({
+    dataCollection: false,
+    researchUse: false,
+  });
   const [userAnswers, setUserAnswers] = useState<{
     gender?: string;
     ageGroup?: string;
     livingType?: string;
     nickname?: string;
+    lonelinessScore?: number;
+    researchConsent?: {
+      dataCollection: boolean;
+      researchUse: boolean;
+    };
   }>({});
 
-  // 4단계 하이브리드: 필수 정보만 온보딩에서, 나머지는 대화에서 자연스럽게
+  // 6단계 하이브리드: 필수 정보 + 웰니스 기준점 측정 + 연구 동의
   const steps = [
     {
       id: 0,
@@ -54,6 +65,19 @@ export default function OnboardingPage() {
       input: true,
       field: "nickname"
     },
+    {
+      id: 4,
+      question: "(달이가 고개를 기울인다)\n요즘 얼마나 외로워?",
+      options: ["전혀 안 외로워", "가끔 외로워", "자주 외로워", "항상 외로워"],
+      field: "lonelinessScore",
+      scoreMap: { "전혀 안 외로워": 1, "가끔 외로워": 2, "자주 외로워": 3, "항상 외로워": 4 }
+    },
+    {
+      id: 5,
+      question: "(달이가 진지한 눈으로 바라본다)\n집사님, 우리의 대화가 다른 집사들에게도 도움이 될 수 있어.",
+      consent: true,
+      field: "researchConsent"
+    },
   ];
 
   useEffect(() => {
@@ -61,24 +85,34 @@ export default function OnboardingPage() {
     setTimeout(() => setIsWaiting(false), 800);
   }, []);
 
-  const handleOptionClick = (option: string) => {
+  const handleOptionClick = async (option: string) => {
     if (isWaiting) return;
     setIsWaiting(true);
 
     // 답변 저장
     const currentStep = steps[step];
-    setUserAnswers(prev => ({
-      ...prev,
-      [currentStep.field]: option
-    }));
+    const scoreMap = (currentStep as any).scoreMap;
+    const value = scoreMap ? scoreMap[option] : option;
+
+    const updatedAnswers = {
+      ...userAnswers,
+      [currentStep.field]: value
+    };
+    setUserAnswers(updatedAnswers);
 
     setTimeout(() => {
       setMessages((prev) => [...prev, { type: "answer", text: option }]);
     }, 400);
 
-    setTimeout(() => {
-      const nextStep = step + 1;
-      if (nextStep < steps.length) {
+    // 마지막 단계 (외로움 문항) 체크
+    const isLastStep = step === steps.length - 1;
+
+    setTimeout(async () => {
+      if (isLastStep) {
+        // 마지막 단계 - 제출
+        await completeOnboarding(updatedAnswers);
+      } else {
+        const nextStep = step + 1;
         setStep(nextStep);
 
         if (steps[nextStep].input) {
@@ -98,6 +132,16 @@ export default function OnboardingPage() {
             setShowInput(true);
             setIsWaiting(false);
           }, 1600);
+        } else if ((steps[nextStep] as any).consent) {
+          // 연구 동의 단계
+          setMessages((prev) => [
+            ...prev,
+            { type: "question", text: steps[nextStep].question! },
+          ]);
+          setTimeout(() => {
+            setShowConsent(true);
+            setIsWaiting(false);
+          }, 800);
         } else {
           setMessages((prev) => [
             ...prev,
@@ -122,13 +166,13 @@ export default function OnboardingPage() {
     setMessages((prev) => [...prev, { type: "answer", text: inputText }]);
     setInputText("");
 
-    // 마지막 단계가 아니면 다음으로
-    if (step < steps.length - 1) {
-      setShowInput(false);
-      setIsWaiting(true);
+    // 다음 단계로 이동 (닉네임 → 외로움 문항)
+    setShowInput(false);
+    setIsWaiting(true);
 
-      setTimeout(() => {
-        const nextStep = step + 1;
+    setTimeout(() => {
+      const nextStep = step + 1;
+      if (nextStep < steps.length) {
         setStep(nextStep);
 
         if (steps[nextStep].input) {
@@ -148,71 +192,130 @@ export default function OnboardingPage() {
             setShowInput(true);
             setIsWaiting(false);
           }, 1600);
+        } else {
+          // 외로움 문항 (선택지 형태)
+          setMessages((prev) => [
+            ...prev,
+            { type: "question", text: steps[nextStep].question! },
+          ]);
+          setTimeout(() => setIsWaiting(false), 800);
         }
-      }, 1600);
-    } else {
-      // 마지막 단계 - 제출
-      setIsLoading(true);
-
-      try {
-        // localStorage에 사용자 정보 저장
-        localStorage.setItem('catus_user_gender', updatedAnswers.gender || '');
-        localStorage.setItem('catus_user_age_group', updatedAnswers.ageGroup || '');
-        localStorage.setItem('catus_user_living_type', updatedAnswers.livingType || '');
-        localStorage.setItem('catus_user_nickname', updatedAnswers.nickname || '달이집사');
-        localStorage.setItem('catus_onboarding_completed', 'true');
-
-        console.log('✅ 온보딩 정보 localStorage 저장 완료:', updatedAnswers);
-
-        // Supabase DB에 온보딩 완료 상태 저장
-        if (user?.id) {
-          const { error: updateError } = await supabase
-            .from('users')
-            .update({
-              nickname: updatedAnswers.nickname || '달이집사',
-              onboarding_completed: true,
-            })
-            .eq('id', user.id);
-
-          if (updateError) {
-            console.warn('⚠️ DB 온보딩 업데이트 실패:', updateError);
-          } else {
-            console.log('✅ DB 온보딩 완료 상태 저장 완료');
-            // AuthContext의 user 상태도 업데이트
-            updateUser({
-              nickname: updatedAnswers.nickname || '달이집사',
-              onboardingCompleted: true
-            });
-          }
-        }
-
-        // 🔬 연구용: DB에 인구통계 저장 (비동기, 실패해도 계속 진행)
-        const livingTypeMap: Record<string, string> = {
-          '혼자 살아요': '1인가구',
-          '가족과 함께': '가족동거',
-          '룸메/기숙사': '기숙사/룸메',
-        };
-
-        researchApi.saveDemographics({
-          ageGroup: updatedAnswers.ageGroup || '20대',
-          gender: updatedAnswers.gender || '비공개',
-          livingType: livingTypeMap[updatedAnswers.livingType || ''] || '기타',
-        }).then(() => {
-          console.log('📊 인구통계 DB 저장 완료');
-        }).catch((err) => {
-          console.warn('인구통계 DB 저장 실패 (무시됨):', err);
-        });
-
-        // 3초 후 홈으로 이동 (단축)
-        setTimeout(() => {
-          navigate('/home');
-        }, 3000);
-      } catch (error: any) {
-        console.error('온보딩 저장 실패:', error);
-        setIsLoading(false);
-        showToast('온보딩 정보 저장에 실패했습니다. 다시 시도해주세요.', 'error');
       }
+    }, 1600);
+  };
+
+  // 온보딩 완료 처리
+  const completeOnboarding = async (finalAnswers: typeof userAnswers) => {
+    setIsLoading(true);
+
+    try {
+      // localStorage에 사용자 정보 저장
+      localStorage.setItem('catus_user_gender', finalAnswers.gender || '');
+      localStorage.setItem('catus_user_age_group', finalAnswers.ageGroup || '');
+      localStorage.setItem('catus_user_living_type', finalAnswers.livingType || '');
+      localStorage.setItem('catus_user_nickname', finalAnswers.nickname || '달이집사');
+      localStorage.setItem('catus_onboarding_completed', 'true');
+
+      console.log('✅ 온보딩 정보 localStorage 저장 완료:', finalAnswers);
+
+      // Supabase DB에 온보딩 완료 상태 저장
+      if (user?.id) {
+        const { error: updateError } = await supabase
+          .from('users')
+          .update({
+            nickname: finalAnswers.nickname || '달이집사',
+            onboarding_completed: true,
+          })
+          .eq('id', user.id);
+
+        if (updateError) {
+          console.warn('⚠️ DB 온보딩 업데이트 실패:', updateError);
+        } else {
+          console.log('✅ DB 온보딩 완료 상태 저장 완료');
+          // AuthContext의 user 상태도 업데이트
+          updateUser({
+            nickname: finalAnswers.nickname || '달이집사',
+            onboardingCompleted: true
+          });
+        }
+      }
+
+      // 🔬 연구용: DB에 인구통계 저장 (비동기, 실패해도 계속 진행)
+      const livingTypeMap: Record<string, string> = {
+        '혼자 살아요': '1인가구',
+        '가족과 함께': '가족동거',
+        '룸메/기숙사': '기숙사/룸메',
+      };
+
+      researchApi.saveDemographics({
+        ageGroup: finalAnswers.ageGroup || '20대',
+        gender: finalAnswers.gender || '비공개',
+        livingType: livingTypeMap[finalAnswers.livingType || ''] || '기타',
+      }).then(() => {
+        console.log('📊 인구통계 DB 저장 완료');
+      }).catch((err) => {
+        console.warn('인구통계 DB 저장 실패 (무시됨):', err);
+      });
+
+      // 🌟 웰니스 평가 저장 (외로움 기준점)
+      if (finalAnswers.lonelinessScore) {
+        wellnessApi.saveAssessment({
+          assessmentType: 'onboarding',
+          lonelinessScore: finalAnswers.lonelinessScore,
+        }).then(() => {
+          console.log('🌟 웰니스 기준점 저장 완료:', finalAnswers.lonelinessScore);
+        }).catch((err) => {
+          console.warn('웰니스 평가 저장 실패 (무시됨):', err);
+        });
+      }
+
+      // 3초 후 홈으로 이동 (단축)
+      setTimeout(() => {
+        navigate('/home');
+      }, 3000);
+    } catch (error: any) {
+      console.error('온보딩 저장 실패:', error);
+      setIsLoading(false);
+      showToast('온보딩 정보 저장에 실패했습니다. 다시 시도해주세요.', 'error');
     }
+  };
+
+  // 연구 동의 제출 핸들러
+  const handleConsentSubmit = async () => {
+    setIsWaiting(true);
+    setShowConsent(false);
+
+    // 동의 상태 메시지 추가
+    const consentText = consentValues.dataCollection || consentValues.researchUse
+      ? "연구에 참여할게!"
+      : "나중에 생각해볼게";
+    setMessages((prev) => [...prev, { type: "answer", text: consentText }]);
+
+    // userAnswers에 동의 정보 저장
+    const updatedAnswers = {
+      ...userAnswers,
+      researchConsent: consentValues,
+    };
+    setUserAnswers(updatedAnswers);
+
+    // 로컬 스토리지에 저장
+    localStorage.setItem('catus_research_consent', JSON.stringify(consentValues));
+
+    // 백엔드에 저장 (비동기, 실패해도 계속 진행)
+    researchApi.saveResearchConsent({
+      consentDataCollection: consentValues.dataCollection,
+      consentResearchUse: consentValues.researchUse,
+      consentAnonymizedSharing: consentValues.researchUse,
+    }).then(() => {
+      console.log('✅ 연구 동의 저장 완료');
+    }).catch((err) => {
+      console.warn('연구 동의 저장 실패 (무시됨):', err);
+    });
+
+    // 마지막 단계이므로 온보딩 완료
+    setTimeout(async () => {
+      await completeOnboarding(updatedAnswers);
+    }, 1600);
   };
 
   const handleSkip = () => {
@@ -351,7 +454,7 @@ export default function OnboardingPage() {
 
         {/* 진행 단계 텍스트 */}
         <p className="text-sm sm:text-base font-medium text-center" style={{ color: 'var(--color-text-primary)' }}>
-          Step {step + 1}/4 - 달이에게 당신을 알려주세요
+          Step {step + 1}/6 - {step < 5 ? '달이에게 당신을 알려주세요' : '연구 참여 동의'}
         </p>
       </div>
 
@@ -364,8 +467,8 @@ export default function OnboardingPage() {
           style={{ position: "fixed", top: "50%", left: "50%", zIndex: 0 }}
           initial={{ scale: 0.6, opacity: 0.3, x: "-50%", y: "-50%" }}
           animate={{
-            scale: step === 0 ? 0.6 : step === 1 ? 0.75 : step === 2 ? 0.9 : 1.1,
-            opacity: step === 0 ? 0.3 : step === 1 ? 0.5 : step === 2 ? 0.75 : 1,
+            scale: step === 0 ? 0.6 : step === 1 ? 0.75 : step === 2 ? 0.9 : step === 3 ? 1.05 : 1.15,
+            opacity: step === 0 ? 0.3 : step === 1 ? 0.5 : step === 2 ? 0.75 : step === 3 ? 0.9 : 1,
             x: "-50%",
             y: "-50%",
           }}
@@ -444,6 +547,118 @@ export default function OnboardingPage() {
             ))}
           </motion.div>
         ) : null}
+
+        {/* 연구 동의 UI */}
+        {(steps[step] as any).consent && showConsent && (
+          <motion.div
+            key="consent"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="mt-4 mx-2"
+          >
+            <div
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                borderRadius: '16px',
+                padding: '16px',
+                marginBottom: '12px',
+              }}
+            >
+              <p style={{ fontSize: '13px', color: '#666', marginBottom: '16px', lineHeight: '1.6' }}>
+                캐터스는 1인가구와 청년의 정서적 건강 연구를 진행하고 있어요.
+                동의하시면 익명화된 대화 분석 데이터가 연구에 활용됩니다.
+              </p>
+
+              {/* 데이터 수집 동의 */}
+              <div className="flex justify-between items-center" style={{ paddingBottom: '12px', borderBottom: '1px solid #f0f0f0' }}>
+                <div>
+                  <span style={{ fontSize: '14px', color: '#333', display: 'block' }}>데이터 수집 동의</span>
+                  <span style={{ fontSize: '11px', color: '#999' }}>감정 분석 데이터 수집</span>
+                </div>
+                <div
+                  onClick={() => setConsentValues(prev => ({ ...prev, dataCollection: !prev.dataCollection }))}
+                  style={{
+                    width: '44px',
+                    height: '26px',
+                    borderRadius: '13px',
+                    backgroundColor: consentValues.dataCollection ? '#59B464' : '#D1D5DB',
+                    cursor: 'pointer',
+                    position: 'relative',
+                    transition: 'background-color 0.3s',
+                  }}
+                >
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '3px',
+                      left: consentValues.dataCollection ? '21px' : '3px',
+                      width: '20px',
+                      height: '20px',
+                      backgroundColor: '#FFFFFF',
+                      borderRadius: '50%',
+                      transition: 'left 0.3s',
+                      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* 연구 활용 동의 */}
+              <div className="flex justify-between items-center" style={{ paddingTop: '12px' }}>
+                <div>
+                  <span style={{ fontSize: '14px', color: '#333', display: 'block' }}>연구 활용 동의</span>
+                  <span style={{ fontSize: '11px', color: '#999' }}>익명 통계 연구 활용</span>
+                </div>
+                <div
+                  onClick={() => setConsentValues(prev => ({ ...prev, researchUse: !prev.researchUse }))}
+                  style={{
+                    width: '44px',
+                    height: '26px',
+                    borderRadius: '13px',
+                    backgroundColor: consentValues.researchUse ? '#59B464' : '#D1D5DB',
+                    cursor: 'pointer',
+                    position: 'relative',
+                    transition: 'background-color 0.3s',
+                  }}
+                >
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '3px',
+                      left: consentValues.researchUse ? '21px' : '3px',
+                      width: '20px',
+                      height: '20px',
+                      backgroundColor: '#FFFFFF',
+                      borderRadius: '50%',
+                      transition: 'left 0.3s',
+                      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 확인 버튼 */}
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={handleConsentSubmit}
+              style={{
+                width: '100%',
+                padding: '14px',
+                backgroundColor: '#59B464',
+                color: 'white',
+                border: 'none',
+                borderRadius: '12px',
+                fontSize: '15px',
+                fontWeight: '600',
+                cursor: 'pointer',
+              }}
+            >
+              확인
+            </motion.button>
+          </motion.div>
+        )}
 
         {/* 입력창 */}
         {steps[step].input && showInput && (

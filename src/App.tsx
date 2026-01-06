@@ -127,9 +127,9 @@ function DeepLinkHandler() {
           localStorage.setItem('catus_login_type', 'kakao');
 
           const userData = {
-            id: parseInt(userId, 10),
+            id: userId,
             nickname: '달이집사',
-            diaryTime: '21:00',
+            createdAt: new Date().toISOString(),
           };
 
           login(userData);

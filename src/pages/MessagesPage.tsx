@@ -279,7 +279,7 @@ export default function MessagesPage() {
                   }}
                 >
                   <img
-                    src={(currentMessage as any)?.thumbnailUrl || createDefaultDiaryImage()}
+                    src={currentMessage?.thumbnailUrl || createDefaultDiaryImage()}
                     alt="일기 그림"
                     className="w-full h-[260px] rounded-md object-cover"
                   />

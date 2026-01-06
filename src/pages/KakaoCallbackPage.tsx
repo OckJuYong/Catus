@@ -2,7 +2,6 @@ import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useKakaoLogin } from '../hooks/useApi';
-import { getUserIdFromToken } from '../utils/jwt';
 
 export default function KakaoCallbackPage() {
   const [searchParams] = useSearchParams();
@@ -43,26 +42,19 @@ export default function KakaoCallbackPage() {
 
         console.log('✅ Login response:', response);
 
-        const { accessToken, refreshToken, isNewUser, userId: backendUserId } = response;
+        const { accessToken, refreshToken, isNewUser, userId, user } = response;
+
+        // userId 검증 - Supabase에서 항상 제공됨
+        if (!userId) {
+          console.error('❌ userId not received from Supabase');
+          throw new Error('사용자 정보를 가져올 수 없습니다.');
+        }
+
+        console.log('✅ userId from Supabase:', userId);
 
         // 1. JWT 토큰 저장
         localStorage.setItem('catus_access_token', accessToken);
         localStorage.setItem('catus_refresh_token', refreshToken);
-
-        // 2. userId 추출 (백엔드 응답 또는 JWT에서, 최종적으로 3 사용)
-        let userId = backendUserId;
-        if (!userId) {
-          console.warn('⚠️ Backend did not return userId, extracting from JWT...');
-          userId = getUserIdFromToken(accessToken);
-          console.log('🔍 Extracted userId from JWT:', userId);
-        }
-
-        if (!userId) {
-          console.warn('⚠️ Failed to extract userId, using default userId: 3');
-          userId = 3;
-        }
-
-        console.log('✅ Final userId:', userId);
 
         // 3. 신규 사용자인 경우 diaryGenerationTime 설정 (21:00 고정)
         if (isNewUser) {
@@ -90,13 +82,8 @@ export default function KakaoCallbackPage() {
         localStorage.setItem('catus_login_type', 'kakao');
 
         // 5. 사용자 정보 저장 (AuthContext에 user 설정)
-        const tempUser = {
-          id: userId,
-          nickname: '사용자', // 온보딩에서 설정
-          createdAt: new Date().toISOString(),
-        };
-        login(tempUser as any);
-        console.log('✅ User logged in:', tempUser);
+        login(user);
+        console.log('✅ User logged in:', user);
 
         // 5. 네비게이션 (user 설정 후 이동)
         if (isNewUser) {

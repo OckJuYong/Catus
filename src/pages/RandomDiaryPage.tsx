@@ -252,18 +252,6 @@ export default function RandomDiaryPage() {
               )}
             </div>
 
-            {/* 미리보기 텍스트 */}
-            {(diary.content || diary.previewText) && (
-              <div className="px-[16px] mb-[12px]">
-                <p
-                  className="text-[12px] leading-relaxed"
-                  style={{ color: 'var(--color-text-secondary)' }}
-                >
-                  {diary.content || diary.previewText}
-                </p>
-              </div>
-            )}
-
             {/* 응원 메시지 입력 영역 */}
             <div className="px-[16px] pb-[20px]">
               {!showMessagePreview ? (

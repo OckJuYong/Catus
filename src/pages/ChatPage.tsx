@@ -61,6 +61,7 @@ export default function ChatPage() {
   const [isAITyping, setIsAITyping] = useState(false);
   const [showEmotionModal, setShowEmotionModal] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // 애니메이션 상태
   const [showChatModal, setShowChatModal] = useState(false);
@@ -427,6 +428,10 @@ export default function ChatPage() {
       setIsAITyping(false);
       // 전송 완료 후 플래그 해제
       isSubmittingRef.current = false;
+      // 입력창에 자동 포커스
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
     }
   };
 
@@ -706,6 +711,7 @@ export default function ChatPage() {
             {/* 입력창 */}
             <div style={{ flex: 1, minWidth: 0, position: 'relative' }}>
               <input
+                ref={inputRef}
                 type="text"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
