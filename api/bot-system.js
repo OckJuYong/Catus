@@ -6,8 +6,9 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Supabase 클라이언트 (서버사이드용 - Service Role Key 사용)
+const SUPABASE_URL = 'https://vplhnjknctzpbhikyttr.supabase.co';
 const supabase = createClient(
-  process.env.VITE_SUPABASE_URL,
+  SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY // 관리자 권한 키
 );
 
