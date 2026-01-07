@@ -326,16 +326,6 @@ export interface ChatDB {
 }
 
 // ===== 컴포넌트 Props 타입 =====
-export interface ModalProps {
-  visible: boolean;
-  onClose: () => void;
-}
-
-export interface WithdrawModalProps extends ModalProps {
-  onConfirm: () => void;
-  isLoading: boolean;
-}
-
 export interface TutorialProps {
   onComplete: () => void;
 }
