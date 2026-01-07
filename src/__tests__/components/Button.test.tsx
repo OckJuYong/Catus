@@ -2,7 +2,7 @@
  * Button 컴포넌트 테스트
  */
 
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Button from '../../components/common/Button';
 

@@ -15,7 +15,7 @@ Object.defineProperty(import.meta, 'env', {
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
-  value: jest.fn().mockImplementation((query: string) => ({
+  value: (query: string) => ({
     matches: false,
     media: query,
     onchange: null,
@@ -24,7 +24,7 @@ Object.defineProperty(window, 'matchMedia', {
     addEventListener: jest.fn(),
     removeEventListener: jest.fn(),
     dispatchEvent: jest.fn(),
-  })),
+  }),
 });
 
 // Mock localStorage
@@ -55,8 +55,8 @@ Object.defineProperty(window, 'localStorage', {
 // Mock Notification API
 Object.defineProperty(window, 'Notification', {
   value: {
-    permission: 'default',
-    requestPermission: jest.fn().mockResolvedValue('granted' as NotificationPermission),
+    permission: 'default' as NotificationPermission,
+    requestPermission: jest.fn(() => Promise.resolve('granted' as NotificationPermission)),
   },
   writable: true,
 });

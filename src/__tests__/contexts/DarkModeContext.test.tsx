@@ -2,7 +2,7 @@
  * DarkModeContext 테스트
  */
 
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { DarkModeProvider, useDarkMode } from '../../contexts/DarkModeContext';
 
 // 테스트용 Consumer 컴포넌트

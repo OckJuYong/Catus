@@ -7,7 +7,7 @@ import { TutorialProvider, useTutorial } from '../../contexts/TutorialContext';
 
 // useLocalStorage Mock
 jest.mock('../../hooks/useLocalStorage', () => ({
-  useLocalStorage: jest.fn((key: string, initialValue: boolean) => {
+  useLocalStorage: jest.fn((_key: string, initialValue: boolean) => {
     let value = initialValue;
     const setValue = jest.fn((newValue: boolean | ((prev: boolean) => boolean)) => {
       if (typeof newValue === 'function') {
@@ -43,7 +43,7 @@ describe('TutorialContext', () => {
     jest.clearAllMocks();
     // useLocalStorage mock 재설정
     const { useLocalStorage } = require('../../hooks/useLocalStorage');
-    useLocalStorage.mockImplementation((key: string, initialValue: boolean) => {
+    useLocalStorage.mockImplementation((_key: string, initialValue: boolean) => {
       let value = initialValue;
       const setValue = jest.fn((newValue: boolean | ((prev: boolean) => boolean)) => {
         if (typeof newValue === 'function') {

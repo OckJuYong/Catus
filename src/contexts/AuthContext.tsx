@@ -5,7 +5,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
-import { supabase, signInWithKakao, signInWithEmail, signUpWithEmail, signOut, getCurrentUser, getSession, onAuthStateChange, customSignUp, customLogin } from '../lib/supabase';
+import { supabase, signInWithKakao, signInWithEmail, signUpWithEmail, signOut, onAuthStateChange, customSignUp, customLogin } from '../lib/supabase';
 import type { User } from '../types';
 import { setTokenRefreshCallback } from '../utils/api';
 import { clearAllChatMessages } from '../utils/indexedDB';
