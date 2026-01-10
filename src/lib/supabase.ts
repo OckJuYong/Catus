@@ -19,6 +19,7 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: true,
     storage: localStorage,
     storageKey: 'catus_auth_token',
+    flowType: 'implicit',  // 모바일 브라우저 호환성을 위해 implicit flow 사용
   },
 });
 
