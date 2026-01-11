@@ -108,6 +108,8 @@ const convertToAppUser = async (supabaseUser: SupabaseUser): Promise<User> => {
 
     if (insertError) {
       console.log('⚠️ 유저 생성 실패, 기본 유저 정보 사용:', insertError.message);
+      console.log('📱 [DEBUG] INSERT 에러:', insertError.code, insertError.details, insertError.hint);
+      // RLS 정책 문제일 가능성 높음
       return basicUser;
     }
 
@@ -146,7 +148,31 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         const accessToken = hashParams.get('access_token');
         const refreshToken = hashParams.get('refresh_token');
 
+        // OAuth 에러 체크
+        const oauthError = hashParams.get('error');
+        const errorDescription = hashParams.get('error_description');
+
         console.log('🎫 토큰 존재 여부:', { hasAccessToken: !!accessToken, hasRefreshToken: !!refreshToken });
+        console.log('🔍 전체 해시:', window.location.hash);
+
+        // 디버깅용 - 배포 후 제거 필요
+        if (window.location.hash && window.location.hash.length > 1) {
+          console.log('📱 [DEBUG] OAuth 리다이렉트 감지');
+          console.log('📱 [DEBUG] accessToken:', accessToken ? '있음' : '없음');
+          console.log('📱 [DEBUG] refreshToken:', refreshToken ? '있음' : '없음');
+          console.log('📱 [DEBUG] error:', oauthError || '없음');
+        }
+
+        if (oauthError) {
+          console.error('❌ OAuth 에러:', oauthError, errorDescription);
+          alert(`카카오 로그인 에러: ${oauthError}\n${errorDescription || ''}`);
+          // URL에서 해시 제거
+          window.history.replaceState(null, '', window.location.pathname);
+          if (isMounted) {
+            setIsLoading(false);
+          }
+          return;
+        }
 
         if (accessToken && refreshToken) {
           console.log('✅ OAuth 토큰 감지, 세션 설정 중...');
@@ -162,6 +188,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
           if (error) {
             console.error('❌ 세션 설정 실패:', error.message, error);
+            alert(`세션 설정 실패: ${error.message}`);
           } else if (data.session?.user) {
             console.log('✅ 세션 설정 성공:', data.session.user.id);
             console.log('👤 유저 메타데이터:', data.session.user.user_metadata);
