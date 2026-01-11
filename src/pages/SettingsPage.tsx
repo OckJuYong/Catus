@@ -50,8 +50,8 @@ function SettingsPage() {
     diaryTime: false
   });
 
-  // 계정 관리 상태
-  const [userNickname, setUserNickname] = useState('사용자123');
+  // 계정 관리 상태 - user 객체에서 실제 닉네임 가져오기
+  const [userNickname, setUserNickname] = useState(user?.nickname || '사용자');
   const [newNickname, setNewNickname] = useState('');
 
   // 일기 설정 상태
