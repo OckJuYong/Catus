@@ -107,9 +107,9 @@ export const useBig5ProgressiveUpdate = () => {
       let finalScores = big5Result;
 
       if (existingScore) {
-        // 가중 평균: 기존 70% + 새로운 30%
-        const OLD_WEIGHT = 0.7;
-        const NEW_WEIGHT = 0.3;
+        // 가중 평균: 기존 90% + 새로운 10%
+        const OLD_WEIGHT = 0.9;
+        const NEW_WEIGHT = 0.1;
 
         finalScores = {
           openness: Math.round(Number(existingScore.openness) * OLD_WEIGHT + big5Result.openness * NEW_WEIGHT),
