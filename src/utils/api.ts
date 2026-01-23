@@ -462,7 +462,14 @@ export const chatApi = {
     const { emotion, summary } = await analyzeChatEmotion(messageData);
 
     // Big5 성격 분석 (ChatAnalysisResponse에 필요)
-    const big5Analysis = await analyzeBig5FromChat(messageData);
+    const big5Analysis = await analyzeBig5FromChat(messageData) ?? {
+      openness: 50,
+      conscientiousness: 50,
+      extraversion: 50,
+      agreeableness: 50,
+      neuroticism: 50,
+      analysis: '분석할 수 없습니다.',
+    };
 
     // 🔬 연구용: 심리 분석 (고립감/웰빙) 병렬 실행
     const psychologyAnalysis = analyzeConversationPsychology(messageData);

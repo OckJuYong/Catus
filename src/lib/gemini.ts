@@ -382,7 +382,15 @@ Big5 성격 특성:
     };
   } catch (error) {
     console.error('Big5 analysis error:', error);
-    throw error;
+    // 에러 발생 시 기본값 반환 (throw 대신)
+    return {
+      openness: 50,
+      conscientiousness: 50,
+      extraversion: 50,
+      agreeableness: 50,
+      neuroticism: 50,
+      analysis: '분석 중 오류가 발생했습니다.',
+    };
   }
 };
 
