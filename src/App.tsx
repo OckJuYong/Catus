@@ -30,6 +30,7 @@ import DiaryRevealPage from './pages/DiaryRevealPage';
 import SettingsPage from './pages/SettingsPage';
 import RandomDiaryPage from './pages/RandomDiaryPage';
 import Big5StatsPage from './pages/Big5StatsPage';
+import Big5TestPage from './pages/Big5TestPage';
 import GeneralLoginPage from './pages/GeneralLoginPage';
 import GeneralSignupPage from './pages/GeneralSignupPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
@@ -196,6 +197,7 @@ function App() {
                 <Route path="/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
                 <Route path="/random-diary" element={<PrivateRoute><RandomDiaryPage /></PrivateRoute>} />
                 <Route path="/big5/stats" element={<PrivateRoute><Big5StatsPage /></PrivateRoute>} />
+                <Route path="/big5/test" element={<PrivateRoute><Big5TestPage /></PrivateRoute>} />
               </Routes>
               </Router>
             </TutorialProvider>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -56,6 +56,12 @@ export default function HomePage({ hideButtons = false, backgroundOnly = false }
 
   // 랜덤 일기 존재 여부 (백엔드에서 플래그 받아올 때까지 false)
   const [hasRandomDiary, setHasRandomDiary] = useState(false);
+
+  // ====== Refs for DOM elements (성능 최적화) ======
+  const catImageRef = useRef<HTMLImageElement>(null);
+  const airplaneRef = useRef<HTMLDivElement>(null);
+  const [catRect, setCatRect] = useState<DOMRect | null>(null);
+  const [airplaneRect, setAirplaneRect] = useState<DOMRect | null>(null);
 
 
   // ====== 백엔드 API로 unreadCount 조회 ======
@@ -146,29 +152,44 @@ const hasNewMessage = unreadCount > 0;
     }
   }, [backgroundOnly, isAnyTutorialActive, isTutorialCompleted, hasNewMessage, airplaneTutorialShown]);
 
-  // ====== 반응형 위치/스케일 ======
-  const aspectRatio = window.innerHeight / window.innerWidth;
-  const isLandscape = aspectRatio < 1; // 가로가 더 긴 경우
-  const isTablet = aspectRatio >= 1 && aspectRatio <= 1.5; // iPad 등 태블릿 (정사각형에 가까움)
+  // ====== 튜토리얼 rect 계산 (렌더 중 DOM 쿼리 방지) ======
+  useEffect(() => {
+    if (showSupportTutorial && catImageRef.current) {
+      setCatRect(catImageRef.current.getBoundingClientRect());
+    }
+  }, [showSupportTutorial]);
 
-  const baseScale =
-    aspectRatio > 1.8 ? 1.18 : aspectRatio > 1.5 ? 1.08 : aspectRatio > 1.2 ? 0.95 : 0.85;
+  useEffect(() => {
+    if (showAirplaneTutorial && airplaneRef.current) {
+      setAirplaneRect(airplaneRef.current.getBoundingClientRect());
+    }
+  }, [showAirplaneTutorial]);
 
-  const catScale = isLandscape
-    ? 1.0 // 가로 모드
-    : isTablet
-    ? 1.0 // iPad 등 태블릿에서 고양이 크기 유지
-    : aspectRatio > 1.8
-      ? baseScale * 1.0
-      : aspectRatio > 1.5
-      ? baseScale * 0.95
-      : baseScale * 0.8;
+  // ====== 반응형 위치/스케일 (useMemo로 최적화) ======
+  const { catScale, cactusScale, cactusTop } = useMemo(() => {
+    const aspectRatio = window.innerHeight / window.innerWidth;
+    const isLandscape = aspectRatio < 1;
+    const isTablet = aspectRatio >= 1 && aspectRatio <= 1.5;
 
-  const heightRatio = Math.min(aspectRatio * 1.2, 1.3);
-  const cactusScale = 0.9 + (heightRatio - 1) * 0.5;
+    const baseScale =
+      aspectRatio > 1.8 ? 1.18 : aspectRatio > 1.5 ? 1.08 : aspectRatio > 1.2 ? 0.95 : 0.85;
 
-  // 가로 모드에서 선인장 위치 조정
-  const cactusTop = isLandscape ? "36.5%" : "33.8%";
+    const catScaleCalc = isLandscape
+      ? 1.0
+      : isTablet
+      ? 1.0
+      : aspectRatio > 1.8
+        ? baseScale * 1.0
+        : aspectRatio > 1.5
+        ? baseScale * 0.95
+        : baseScale * 0.8;
+
+    const heightRatio = Math.min(aspectRatio * 1.2, 1.3);
+    const cactusScaleCalc = 0.9 + (heightRatio - 1) * 0.5;
+    const cactusTopCalc = isLandscape ? "36.5%" : "33.8%";
+
+    return { catScale: catScaleCalc, cactusScale: cactusScaleCalc, cactusTop: cactusTopCalc };
+  }, []);
 
   const openChat = (): void => navigate(ROUTES.CHAT);
 
@@ -256,6 +277,7 @@ const hasNewMessage = unreadCount > 0;
         alt="background"
         className="absolute inset-0 w-full h-full object-fill select-none pointer-events-none"
         draggable="false"
+        loading="eager"
       />
 
       {/* 튜토리얼 */}
@@ -263,300 +285,89 @@ const hasNewMessage = unreadCount > 0;
         <Tutorial onComplete={handleTutorialComplete} />
       )}
 
-      {/* 응원일기 처음 알림 튜토리얼 */}
-      {!backgroundOnly && showSupportTutorial && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            zIndex: 9999,
-            pointerEvents: 'none'
-          }}
+      {/* 응원일기 처음 알림 튜토리얼 - 최적화됨 */}
+      {!backgroundOnly && showSupportTutorial && catRect && (
+        <div
+          className="fixed inset-0 z-[9999]"
+          style={{ pointerEvents: 'none' }}
         >
-          {/* 오버레이 배경 */}
+          {/* 오버레이 배경 - CSS로 처리 */}
           <div
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              backgroundColor: 'rgba(0, 0, 0, 0.5)',
-              pointerEvents: 'all'
-            }}
+            className="absolute inset-0 bg-black/50"
+            style={{ pointerEvents: 'all' }}
             onClick={() => {
               setSupportTutorialShown(true);
               setShowSupportTutorial(false);
             }}
           />
 
-          {/* 고양이 스팟라이트 */}
-          {(() => {
-            const catElement = document.querySelector('.cat-image');
-            if (!catElement) return null;
-            const rect = catElement.getBoundingClientRect();
-
-            if (rect.width === 0 || rect.height === 0) return null;
-
-            const catCenterX = rect.left + rect.width / 2;
-            const messageWidth = 240;
-            const padding = 10;
-
-            const idealMessageLeft = catCenterX - messageWidth / 2;
-            const messageLeft = Math.max(20, Math.min(window.innerWidth - messageWidth - 20, idealMessageLeft));
-            const messageTop = rect.top - padding - 10;
-            const arrowLeft = catCenterX - messageLeft;
-
-            return (
-              <>
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  style={{
-                    position: 'absolute',
-                    top: rect.top - padding + 5,
-                    left: rect.left - padding,
-                    width: rect.width + (padding * 2),
-                    height: rect.height + (padding * 2),
-                    borderRadius: '20px',
-                    boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.5)',
-                    pointerEvents: 'none',
-                    zIndex: 10000,
-                    transition: 'all 0.3s ease'
-                  }}
-                />
-
-                {/* 메시지 박스 */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  style={{
-                    position: 'absolute',
-                    bottom: `${window.innerHeight - messageTop}px`,
-                    left: `${messageLeft}px`,
-                    width: `${messageWidth}px`,
-                    pointerEvents: 'all',
-                    zIndex: 10001
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <div
-                    style={{
-                      position: 'relative',
-                      background: 'white',
-                      borderRadius: '16px',
-                      padding: '13px',
-                      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
-                      textAlign: 'center'
-                    }}
-                  >
-                    {/* 화살표 */}
-                    <div
-                      style={{
-                        position: 'absolute',
-                        bottom: '-7px',
-                        left: `${arrowLeft}px`,
-                        transform: 'translateX(-50%)',
-                        width: 0,
-                        height: 0,
-                        borderLeft: '9px solid transparent',
-                        borderRight: '9px solid transparent',
-                        borderTop: '9px solid white'
-                      }}
-                    />
-
-                    <p
-                      style={{
-                        fontSize: '16px',
-                        lineHeight: '1.5',
-                        color: '#333',
-                        marginBottom: '12px',
-                        whiteSpace: 'pre-line'
-                      }}
-                    >
-                      달이가 편지를 들고 있어요 ✉️{'\n'}익명으로 다른 사람에게 응원 메시지를 보낼 수 있어요
-                    </p>
-
-                    <button
-                      onClick={() => {
-                        setSupportTutorialShown(true);
-                        setShowSupportTutorial(false);
-                      }}
-                      style={{
-                        width: '100%',
-                        padding: '8px 12px',
-                        background: 'transparent',
-                        border: 'none',
-                        color: '#666',
-                        fontSize: '14px',
-                        fontWeight: '500',
-                        cursor: 'pointer',
-                        borderRadius: '8px',
-                        transition: 'background 0.2s'
-                      }}
-                    >
-                      달이를 3번 쓰다듬어 봐요
-                    </button>
-                  </div>
-                </motion.div>
-              </>
-            );
-          })()}
-        </motion.div>
+          {/* 메시지 박스 */}
+          <div
+            className="absolute bg-white rounded-2xl p-4 shadow-lg text-center"
+            style={{
+              bottom: `${window.innerHeight - catRect.top + 20}px`,
+              left: `${Math.max(20, Math.min(window.innerWidth - 260, catRect.left + catRect.width / 2 - 120))}px`,
+              width: '240px',
+              pointerEvents: 'all',
+              zIndex: 10001
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-base leading-relaxed text-gray-800 mb-3 whitespace-pre-line">
+              달이가 편지를 들고 있어요 ✉️{'\n'}익명으로 다른 사람에게 응원 메시지를 보낼 수 있어요
+            </p>
+            <button
+              onClick={() => {
+                setSupportTutorialShown(true);
+                setShowSupportTutorial(false);
+              }}
+              className="w-full py-2 px-3 bg-transparent border-0 text-gray-500 text-sm font-medium cursor-pointer rounded-lg"
+            >
+              달이를 3번 쓰다듬어 봐요
+            </button>
+          </div>
+        </div>
       )}
 
-      {/* 종이비행기 튜토리얼 */}
-      {!backgroundOnly && showAirplaneTutorial && hasNewMessage && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            zIndex: 10500,
-            pointerEvents: 'none'
-          }}
-        >
-          {(() => {
-            const airplaneElement = document.querySelector('.airplane-container');
-            if (!airplaneElement) return null;
-            const rect = airplaneElement.getBoundingClientRect();
-
-            if (rect.width === 0 || rect.height === 0) return null;
-
-            const airplaneCenterX = rect.left + rect.width / 2;
-            const messageWidth = 240;
-            const padding = 15;
-
-            const idealMessageLeft = airplaneCenterX - messageWidth / 2;
-            const messageLeft = Math.max(20, Math.min(window.innerWidth - messageWidth - 20, idealMessageLeft));
-            const messageTop = rect.bottom + padding + 10;
-            const arrowLeft = airplaneCenterX - messageLeft;
-
-            const handleClose = () => {
+      {/* 종이비행기 튜토리얼 - 최적화됨 */}
+      {!backgroundOnly && showAirplaneTutorial && hasNewMessage && airplaneRect && (
+        <div className="fixed inset-0 z-[10500]" style={{ pointerEvents: 'none' }}>
+          {/* 오버레이 배경 */}
+          <div
+            className="absolute inset-0 bg-black/50"
+            style={{ pointerEvents: 'all' }}
+            onClick={() => {
               setAirplaneTutorialShown(true);
               setShowAirplaneTutorial(false);
-            };
+            }}
+          />
 
-            return (
-              <>
-                {/* 오버레이 배경 */}
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                    pointerEvents: 'all'
-                  }}
-                  onClick={handleClose}
-                />
-
-                {/* 스팟라이트 */}
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  style={{
-                    position: 'absolute',
-                    top: rect.top - padding,
-                    left: rect.left - padding,
-                    width: rect.width + (padding * 2),
-                    height: rect.height + (padding * 2),
-                    borderRadius: '50%',
-                    boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.5)',
-                    pointerEvents: 'none',
-                    zIndex: 10501,
-                    transition: 'all 0.3s ease'
-                  }}
-                />
-
-                {/* 메시지 박스 */}
-                <motion.div
-                  initial={{ opacity: 0, y: -20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  style={{
-                    position: 'absolute',
-                    top: `${messageTop}px`,
-                    left: `${messageLeft}px`,
-                    width: `${messageWidth}px`,
-                    pointerEvents: 'all',
-                    zIndex: 10502
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <div
-                    style={{
-                      position: 'relative',
-                      background: 'white',
-                      borderRadius: '16px',
-                      padding: '16px',
-                      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
-                      textAlign: 'center'
-                    }}
-                  >
-                    {/* 화살표 */}
-                    <div
-                      style={{
-                        position: 'absolute',
-                        top: '-7px',
-                        left: `${arrowLeft}px`,
-                        transform: 'translateX(-50%)',
-                        width: 0,
-                        height: 0,
-                        borderLeft: '9px solid transparent',
-                        borderRight: '9px solid transparent',
-                        borderBottom: '9px solid white'
-                      }}
-                    />
-
-                    <p
-                      style={{
-                        fontSize: '15px',
-                        lineHeight: '1.5',
-                        color: '#333',
-                        marginBottom: '12px'
-                      }}
-                    >
-                      누군가가 응원의 메세지를 날렸어요
-                    </p>
-
-                    <button
-                      onClick={handleClose}
-                      style={{
-                        width: '100%',
-                        padding: '10px 12px',
-                        background: '#5F6F52',
-                        border: 'none',
-                        color: 'white',
-                        fontSize: '14px',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        borderRadius: '8px',
-                        transition: 'opacity 0.2s'
-                      }}
-                    >
-                      확인
-                    </button>
-                  </div>
-                </motion.div>
-              </>
-            );
-          })()}
-        </motion.div>
+          {/* 메시지 박스 */}
+          <div
+            className="absolute bg-white rounded-2xl p-4 shadow-lg text-center"
+            style={{
+              top: `${airplaneRect.bottom + 25}px`,
+              left: `${Math.max(20, Math.min(window.innerWidth - 260, airplaneRect.left + airplaneRect.width / 2 - 120))}px`,
+              width: '240px',
+              pointerEvents: 'all',
+              zIndex: 10502
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-[15px] leading-relaxed text-gray-800 mb-3">
+              누군가가 응원의 메세지를 날렸어요
+            </p>
+            <button
+              onClick={() => {
+                setAirplaneTutorialShown(true);
+                setShowAirplaneTutorial(false);
+              }}
+              className="w-full py-2.5 px-3 bg-[#5F6F52] border-0 text-white text-sm font-semibold cursor-pointer rounded-lg"
+            >
+              확인
+            </button>
+          </div>
+        </div>
       )}
 
       {/* 선인장 - Big5 통계 */}
@@ -572,83 +383,42 @@ const hasNewMessage = unreadCount > 0;
         <img
           src={cactusImage}
           alt="cactus"
-          className="object-contain drop-shadow-lg w-[15vw] min-w-[80px] max-w-[130px]"
-          style={{ filter: isDarkMode ? 'brightness(0.7)' : 'none' }}
+          className="object-contain w-[15vw] min-w-[80px] max-w-[130px]"
+          style={{ filter: isDarkMode ? 'brightness(0.7)' : undefined }}
+          loading="lazy"
         />
       </button>
 
       {/* 종이비행기 - 응원 메시지 알림 */}
       {!backgroundOnly && hasNewMessage && (
-        <motion.div
+        <div
+          ref={airplaneRef}
           className="airplane-container absolute z-30 cursor-pointer"
-          style={{
-            top: "42%",
-            right: "10%",
-          }}
-          initial={{
-            x: -window.innerWidth * 0.95,
-            y: -window.innerHeight * 0.3,
-            opacity: 0,
-            rotate: -45
-          }}
-          animate={{
-            x: 0,
-            y: 0,
-            opacity: 1,
-            rotate: 0
-          }}
-          transition={{
-            duration: 2,
-            ease: [0.34, 1.56, 0.64, 1],
-            x: {
-              type: "spring",
-              damping: 20,
-              stiffness: 50
-            },
-            y: {
-              type: "spring",
-              damping: 25,
-              stiffness: 40
-            },
-            rotate: {
-              duration: 2,
-              ease: "easeOut"
-            }
-          }}
+          style={{ top: "42%", right: "10%" }}
           onClick={handleAirplaneClick}
         >
           {/* 종이비행기 */}
-          <motion.img
+          <img
             src={airplaneSvg}
             alt="paper airplane"
-            className="w-[70px] h-[70px] sm:w-[80px] sm:h-[80px] drop-shadow-lg"
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
+            className="w-[70px] h-[70px] sm:w-[80px] sm:h-[80px]"
+            loading="lazy"
           />
-
-          {/* 느낌표 - 깜빡임 */}
-          <motion.img
+          {/* 느낌표 - CSS 애니메이션 */}
+          <img
             src={exclamationMark}
             alt="notification"
-            className="absolute -bottom-1 -right-1 w-[20px] h-[20px]"
-            animate={{
-              opacity: [1, 0.3, 1],
-              scale: [1, 0.95, 1]
-            }}
-            transition={{
-              duration: 1,
-              repeat: Infinity,
-              ease: "easeInOut"
-            }}
+            className="absolute -bottom-1 -right-1 w-[20px] h-[20px] animate-pulse"
+            loading="lazy"
           />
-        </motion.div>
+        </div>
       )}
 
       {/* 고양이 - 3번 클릭 시 랜덤일기 */}
       {!backgroundOnly && hasRandomDiary ? (
         <button
           onClick={handleCatClick}
-          className="cat-container absolute z-20 bg-transparent p-0 border-0 cursor-pointer"
+          className="cat-container absolute z-20 bg-transparent p-0 border-0 cursor-pointer active:scale-95 transition-transform"
           style={{
             top: "49%",
             left: "2%",
@@ -656,20 +426,13 @@ const hasNewMessage = unreadCount > 0;
             transformOrigin: "center left",
           }}
         >
-          <motion.img
+          <img
+            ref={catImageRef}
             src={catMessageImage}
             alt="cat"
-            className="cat-image object-contain drop-shadow-2xl w-[35vw] min-w-[220px] max-w-[270px]"
-            style={{ filter: isDarkMode ? 'brightness(0.7)' : 'none' }}
-            key={catAnimationKey}
-            animate={{
-              y: [0, -20, -10, -15, 0],
-              scale: [1, 1.05, 1.02, 1.03, 1]
-            }}
-            transition={{
-              duration: 0.6,
-              ease: [0.34, 1.56, 0.64, 1]
-            }}
+            className="cat-image object-contain w-[35vw] min-w-[220px] max-w-[270px]"
+            style={{ filter: isDarkMode ? 'brightness(0.7)' : undefined }}
+            loading="lazy"
           />
         </button>
       ) : (
@@ -682,44 +445,33 @@ const hasNewMessage = unreadCount > 0;
             transformOrigin: "center left",
           }}
         >
-          <motion.img
+          <img
+            ref={catImageRef}
             src={catImage}
             alt="cat"
-            className="cat-image object-contain drop-shadow-2xl w-[25vw] min-w-[170px] max-w-[220px]"
-            style={{ filter: isDarkMode ? 'brightness(0.9)' : 'none' }}
+            className="cat-image object-contain w-[25vw] min-w-[170px] max-w-[220px]"
+            style={{ filter: isDarkMode ? 'brightness(0.9)' : undefined }}
+            loading="lazy"
           />
         </div>
       )}
 
-      {/* 책 → 달력 (열림/닫힘 애니메이션) */}
+      {/* 책 → 달력 */}
       <button
         onClick={handleBookClick}
-        className="diary-book absolute z-10 bg-transparent p-0 border-0"
+        className="diary-book absolute z-10 bg-transparent p-0 border-0 active:scale-95 transition-transform"
         style={{ top: "63%", left: "70%", transform: "translate(-50%, -50%)" }}
       >
-        <motion.img
+        <img
           src={isCalendarOpen || isBookOpening ? bookOpen : bookClose}
           alt="diary"
-          className={`object-contain drop-shadow-xl ${
+          className={`object-contain transition-transform ${
             isCalendarOpen || isBookOpening
-              ? 'w-[28vw] min-w-[160px] max-w-[240px]'
+              ? 'w-[28vw] min-w-[160px] max-w-[240px] scale-105'
               : 'w-[22vw] min-w-[130px] max-w-[190px]'
           }`}
-          style={{ filter: isDarkMode ? 'brightness(0.7)' : 'none' }}
-          animate={
-            isBookOpening
-              ? { scale: [1, 1.15, 1.05], rotateY: [0, 15, 0] }
-              : isCalendarOpen
-              ? {}
-              : { scale: 1 }
-          }
-          whileHover={!isBookOpening ? { scale: 1.05 } : {}}
-          whileTap={!isBookOpening ? { scale: 0.95 } : {}}
-          transition={{
-            duration: 0.6,
-            ease: "easeInOut",
-            scale: { duration: 0.6 }
-          }}
+          style={{ filter: isDarkMode ? 'brightness(0.7)' : undefined }}
+          loading="lazy"
         />
       </button>
 

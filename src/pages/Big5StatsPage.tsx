@@ -213,15 +213,21 @@ export default function Big5StatsPage() {
               className="text-[18px] font-[600] mb-[8px]"
               style={{ color: 'var(--color-text-primary)' }}
             >
-              아직 분석 데이터가 없어요
+              BIG5 성격 검사를 시작하세요
             </h2>
             <p
-              className="text-[14px] leading-relaxed"
+              className="text-[14px] mb-[20px] leading-relaxed"
               style={{ color: 'var(--color-text-secondary)' }}
             >
-              달이와 대화를 나누면 매일 자동으로
-              성격 특성이 분석됩니다.
+              10가지 질문으로 당신의 성격 특성을 분석하고,
+              이후 대화를 통해 자동으로 업데이트됩니다.
             </p>
+            <button
+              onClick={() => navigate(ROUTES.BIG5_TEST)}
+              className="w-full py-[12px] bg-[#5E7057] text-[#FFFFFF] rounded-[12px] text-[15px] font-[500] border-0 cursor-pointer"
+            >
+              검사 시작하기
+            </button>
           </div>
         </div>
       </div>

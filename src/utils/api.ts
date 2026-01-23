@@ -1150,6 +1150,23 @@ export const settingsApi = {
       updatedAt: data.updated_at,
     };
   },
+
+  // 개인화 프롬프트 리셋 (냉정한 프롬프트 수정용)
+  resetPersonalizedPrompt: async (): Promise<{ message: string }> => {
+    const userId = await getCurrentUserId();
+
+    const { error } = await supabase
+      .from('user_settings')
+      .update({ personalized_prompt: null })
+      .eq('user_id', userId);
+
+    if (error) {
+      throw new ApiError('프롬프트 리셋에 실패했습니다.', 500, error);
+    }
+
+    console.log('✅ 개인화 프롬프트가 리셋되었습니다. 다음 점진적 업데이트에서 새로 생성됩니다.');
+    return { message: '개인화 프롬프트가 리셋되었습니다.' };
+  },
 };
 
 /**
