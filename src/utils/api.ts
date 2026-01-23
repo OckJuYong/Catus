@@ -316,7 +316,28 @@ export const chatApi = {
     ]);
 
     const personalizedPrompt = settingsResult.data?.personalized_prompt || null;
-    const historyData = historyResult.data || [];
+    let historyData = historyResult.data || [];
+
+    // 오늘 첫 대화인 경우, 어제 마지막 대화 몇 개를 컨텍스트로 로드
+    if (historyData.length === 0) {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = formatDate(yesterday);
+
+      const { data: yesterdayHistory } = await supabase
+        .from('chat_messages')
+        .select('user_message, ai_response')
+        .eq('user_id', userId)
+        .eq('chat_date', yesterdayStr)
+        .order('created_at', { ascending: false })
+        .limit(5); // 어제 마지막 5개 대화
+
+      if (yesterdayHistory && yesterdayHistory.length > 0) {
+        // 시간순으로 정렬 (ascending)
+        historyData = yesterdayHistory.reverse();
+        console.log('📅 어제 대화 컨텍스트 로드됨:', historyData.length, '개');
+      }
+    }
 
     // Build chat history for Gemini
     const chatHistory = historyData.flatMap(msg => [
