@@ -178,8 +178,20 @@ export default function OnboardingPage() {
             setShowInput(true);
             setIsWaiting(false);
           }, 1600);
+        } else if ((steps[nextStep] as any).consent) {
+          // 개인정보 동의 단계 (닉네임 입력 후)
+          console.log('📋 개인정보 동의 단계로 이동');
+          setMessages((prev) => [
+            ...prev,
+            { type: "question", text: steps[nextStep].question! },
+          ]);
+          setTimeout(() => {
+            setShowConsent(true);
+            setIsWaiting(false);
+            console.log('✅ showConsent = true 설정됨');
+          }, 800);
         } else {
-          // 외로움 문항 (선택지 형태)
+          // 일반 선택지 문항
           setMessages((prev) => [
             ...prev,
             { type: "question", text: steps[nextStep].question! },

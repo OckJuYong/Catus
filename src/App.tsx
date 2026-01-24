@@ -164,6 +164,44 @@ function BackgroundServices() {
   return null;
 }
 
+/**
+ * Samsung Browser 렌더링 버그 해결을 위한 Visibility Handler
+ * 탭 전환 후 돌아왔을 때 강제 repaint 실행
+ */
+function VisibilityHandler() {
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('👁️ [Samsung Browser Fix] 탭 활성화됨 - forceRepaint 실행');
+
+        // 강제 repaint 실행
+        const root = document.getElementById('root');
+        if (root) {
+          root.style.transform = 'translateZ(0)';
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              root.style.transform = '';
+            });
+          });
+        }
+
+        document.body.style.opacity = '0.999';
+        requestAnimationFrame(() => {
+          document.body.style.opacity = '1';
+        });
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
+  return null;
+}
+
 function App() {
   return (
     <ErrorBoundary>
@@ -174,6 +212,7 @@ function App() {
               <Router>
               <DeepLinkHandler />
               <BackgroundServices />
+              <VisibilityHandler />
               <Routes>
                 {/* Public Routes */}
                 <Route path="/" element={<LoginPage />} />

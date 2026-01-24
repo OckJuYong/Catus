@@ -10,6 +10,32 @@ import type { User } from '../types';
 import { setTokenRefreshCallback } from '../utils/api';
 import { clearAllChatMessages } from '../utils/indexedDB';
 
+/**
+ * Samsung Browser 렌더링 버그 해결을 위한 강제 repaint 함수
+ * OAuth 콜백 후 화면이 갱신되지 않는 문제 해결
+ */
+const forceRepaint = (): void => {
+  // 방법 1: transform 트릭으로 GPU 레이어 재계산 유도
+  const root = document.getElementById('root');
+  if (root) {
+    root.style.transform = 'translateZ(0)';
+    // requestAnimationFrame을 사용해 다음 프레임에서 리셋
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        root.style.transform = '';
+      });
+    });
+  }
+
+  // 방법 2: body visibility 토글 (백업)
+  document.body.style.opacity = '0.999';
+  requestAnimationFrame(() => {
+    document.body.style.opacity = '1';
+  });
+
+  console.log('🔄 [Samsung Browser Fix] forceRepaint 실행됨');
+};
+
 interface AuthContextValue {
   user: User | null;
   isLoading: boolean;
@@ -221,6 +247,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             }
 
             setIsLoading(false);
+
+            // Samsung Browser 렌더링 버그 해결: OAuth 후 강제 repaint
+            setTimeout(() => forceRepaint(), 100);
+            setTimeout(() => forceRepaint(), 500);
+
             return;
           } else {
             console.error('❌ 세션 데이터 없음:', data);
@@ -240,6 +271,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           setUser(appUser);
           localStorage.setItem('catus_user', JSON.stringify(appUser));
           console.log('✅ 기존 세션으로 로그인:', appUser.nickname);
+
+          // Samsung Browser 렌더링 버그 해결: 기존 세션 복원 후 강제 repaint
+          setTimeout(() => forceRepaint(), 100);
         } else {
           // localStorage에서 user만 있고 session이 없으면 로그아웃 처리
           console.log('⚠️ 세션 없음, localStorage 정리');
