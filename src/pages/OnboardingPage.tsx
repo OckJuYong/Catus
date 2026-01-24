@@ -127,6 +127,23 @@ export default function OnboardingPage() {
           setTimeout(() => {
             setShowConsent(true);
             setIsWaiting(false);
+
+            // Samsung Browser 렌더링 버그 수정: 강제 repaint
+            requestAnimationFrame(() => {
+              requestAnimationFrame(() => {
+                const root = document.getElementById('root');
+                if (root) {
+                  root.style.transform = 'translateZ(0)';
+                  setTimeout(() => {
+                    root.style.transform = '';
+                  }, 10);
+                }
+                document.body.style.opacity = '0.999';
+                setTimeout(() => {
+                  document.body.style.opacity = '1';
+                }, 10);
+              });
+            });
           }, 800);
         } else {
           setMessages((prev) => [
@@ -189,6 +206,24 @@ export default function OnboardingPage() {
             setShowConsent(true);
             setIsWaiting(false);
             console.log('✅ showConsent = true 설정됨');
+
+            // Samsung Browser 렌더링 버그 수정: 강제 repaint
+            requestAnimationFrame(() => {
+              requestAnimationFrame(() => {
+                const root = document.getElementById('root');
+                if (root) {
+                  root.style.transform = 'translateZ(0)';
+                  setTimeout(() => {
+                    root.style.transform = '';
+                  }, 10);
+                }
+                document.body.style.opacity = '0.999';
+                setTimeout(() => {
+                  document.body.style.opacity = '1';
+                }, 10);
+                console.log('🔄 [Samsung Browser Fix] consent UI forceRepaint 실행');
+              });
+            });
           }, 800);
         } else {
           // 일반 선택지 문항
